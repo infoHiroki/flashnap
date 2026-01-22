@@ -465,6 +465,36 @@ flashnap/
 - カメラボタンの近くで誤タップしやすい
 - 確認ダイアログが出ない（即削除される）
 
+### 9.5 次セッションへの引き継ぎ
+
+**修正対象ファイル**: `index.html`
+
+**修正箇所と方針**:
+
+1. **パンくずリストの挙動修正** (JS: `renderBreadcrumbs()`)
+   - 調査名タップ時、選択画面に戻るのではなく `state.currentNodeId = null` にして撮影画面を維持
+   - ルート階層（parentId === null）でも撮影可能にする
+
+2. **ヘッダー表示変更** (HTML/JS)
+   - 撮影画面でも `$('headerTitle').textContent = 'Flashnap'` でアプリタイトル表示
+   - 戻るボタンは非表示のまま（パンくずで十分）
+
+3. **カラムレイアウト修正** (CSS: `@media (orientation: landscape)`)
+   - `grid-template-columns: 200px 1fr 100px` に変更（右に固定幅）
+   - `.center-content` に `justify-content: center; align-items: center;` 確認
+   - `.capture-buttons-landscape` に `padding-right: 16px;` 追加
+   - 各要素の縦中央揃えを確認
+
+4. **取り消しボタン改善** (CSS/JS)
+   - 位置をカメラボタンから離す（左下 or 中央下部へ移動）
+   - `undoCapture()` に `confirm('直前の撮影を取り消しますか？')` 追加
+
+**確認用コマンド**:
+```bash
+npx wrangler pages deploy . --project-name=flashnap
+```
+本番URL: https://flashnap.pages.dev
+
 ---
 
 ## 10. 今後の拡張案（未実装）
