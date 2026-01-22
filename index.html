@@ -292,28 +292,32 @@
 
     /* 横持ち時のレイアウト */
     @media (orientation: landscape) and (max-height: 500px) {
+      body {
+        overflow: hidden;
+      }
+
       .header {
-        padding: 8px 16px;
+        padding: 6px 16px;
       }
 
       .main {
-        padding: 8px 16px;
+        padding: 4px 8px;
         max-width: none;
+        overflow: hidden;
       }
 
       #captureScreen {
         display: grid;
-        grid-template-columns: 200px 1fr auto;
-        grid-template-rows: auto 1fr;
+        grid-template-columns: 150px 1fr 100px;
+        grid-template-rows: 1fr;
         gap: 8px;
-        height: calc(100dvh - 50px);
+        height: calc(100dvh - 44px);
         align-items: start;
       }
 
+      /* 横向き時はパンくず非表示（左サイドバーで代替） */
       .breadcrumbs {
-        grid-column: 1 / -1;
-        margin-bottom: 0;
-        padding: 4px 0;
+        display: none;
       }
 
       /* 縦向き用の階層セクションは非表示 */
@@ -329,7 +333,7 @@
         flex-direction: column;
         max-height: 100%;
         overflow-y: auto;
-        align-self: stretch;
+        align-self: start;
         padding-left: 0;
       }
 
@@ -343,8 +347,8 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 6px 8px;
-        font-size: 0.85rem;
+        padding: 5px 6px;
+        font-size: 0.75rem;
         cursor: pointer;
         border-left: 3px solid transparent;
         transition: background 0.15s;
@@ -359,6 +363,16 @@
         border-left-color: var(--accent);
       }
 
+      .tree-survey {
+        font-weight: 600;
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .tree-node {
+        font-size: 0.7rem;
+      }
+
       .tree-item-name {
         flex: 1;
         white-space: nowrap;
@@ -367,17 +381,14 @@
       }
 
       .tree-item-count {
-        font-size: 0.75rem;
+        font-size: 0.65rem;
         color: var(--text-secondary);
         margin-left: 4px;
         flex-shrink: 0;
       }
 
       .tree-item-actions {
-        display: flex;
-        gap: 2px;
-        margin-left: 4px;
-        flex-shrink: 0;
+        display: none;
       }
 
       .tree-item-actions .btn-icon {
@@ -417,8 +428,8 @@
       }
 
       .capture-section .current-number {
-        font-size: 3.5rem;
-        margin-bottom: 0;
+        font-size: 4.5rem;
+        margin-bottom: 4px;
       }
 
       .capture-section .current-path {
@@ -427,7 +438,7 @@
 
       .capture-section .current-count {
         display: block;
-        font-size: 0.9rem;
+        font-size: 1.1rem;
         margin-bottom: 4px;
       }
 
@@ -462,7 +473,14 @@
         font-size: 0.55rem;
       }
 
-      /* 右: カメラボタン（右端ギリギリ） */
+      /* 横向き時の取り消しボタン（中央カラム下部） */
+      .btn-undo-landscape {
+        margin-top: 12px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+      }
+
+      /* 右: カメラボタン */
       .capture-buttons-landscape {
         grid-column: 3;
         grid-row: 2;
@@ -471,6 +489,7 @@
         align-items: center;
         justify-content: center;
         padding-right: 0;
+        align-self: center;
         gap: 8px;
       }
 
@@ -483,11 +502,6 @@
         color: white;
         border: none;
         cursor: pointer;
-      }
-
-      .capture-buttons-landscape .btn-undo {
-        padding: 6px 12px;
-        font-size: 0.75rem;
       }
 
       /* 横持ち時のモーダル対応 */
@@ -842,7 +856,7 @@
       <button class="btn btn-icon hidden" id="btnBack" title="戻る">
         <span>←</span>
       </button>
-      <h1 id="headerTitle">Flashnap</h1>
+      <h1 id="headerTitle" style="cursor: pointer;">Flashnap</h1>
     </div>
     <div class="header-buttons">
       <button class="btn btn-icon" id="btnExport" title="エクスポート">
@@ -908,15 +922,17 @@
           <h3>最近の撮影</h3>
           <div class="recent-list" id="recentList"></div>
         </div>
+
+        <!-- 横向き専用取り消しボタン（中央下部） -->
+        <button class="btn btn-secondary btn-undo btn-undo-landscape hidden" id="btnUndoLandscape">
+          ↩️ 取り消し
+        </button>
       </div>
 
       <!-- 横向き専用カメラボタン -->
       <div class="capture-buttons-landscape">
         <button class="btn btn-primary btn-capture" id="btnCaptureLandscape">
           <span>📷</span>
-        </button>
-        <button class="btn btn-secondary btn-undo hidden" id="btnUndoLandscape">
-          ↩️ 取り消し
         </button>
       </div>
     </section>
@@ -1383,10 +1399,13 @@
       container.querySelectorAll('.breadcrumb-item').forEach(item => {
         item.addEventListener('click', () => {
           if (item.dataset.id === 'survey') {
-            state.currentSurveyId = null;
+            // 撮影画面を維持し、ルート階層で撮影可能に
             state.currentNodeId = null;
-            showScreen('survey');
-            renderSurveyList();
+            state.lastRecordId = null;
+            renderBreadcrumbs();
+            renderNodeList();
+            renderLandscapeTree();
+            renderCaptureSection();
           } else {
             navigateToNode(item.dataset.id);
           }
@@ -1451,65 +1470,91 @@
       });
     }
 
-    // 横持ち専用ツリー表示
+    // 横持ち専用ツリー表示（調査一覧 + 階層）
     function renderLandscapeTree() {
       const container = $('landscapeTree');
-      const surveyNodes = state.nodes.filter(n => n.surveyId === state.currentSurveyId);
+      let html = '';
 
-      if (surveyNodes.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.85rem; padding: 8px;">階層がありません</p>';
-        return;
-      }
+      // 調査一覧
+      state.surveys.sort((a, b) => b.createdAt - a.createdAt).forEach(survey => {
+        const isCurrentSurvey = survey.id === state.currentSurveyId;
+        const photoCount = state.records.filter(r => r.surveyId === survey.id).length;
 
-      // ツリー構造を再帰的に描画
-      function renderNode(node, depth) {
-        const photoCount = state.records.filter(r => r.nodeId === node.id).length;
-        const isSelected = node.id === state.currentNodeId;
-        const indent = depth * 12;
-
-        let html = `
-          <div class="tree-item ${isSelected ? 'selected' : ''}" data-id="${node.id}" style="padding-left: ${indent + 8}px;">
-            <span class="tree-item-name">${escapeHtml(node.name)}</span>
+        html += `
+          <div class="tree-item tree-survey ${isCurrentSurvey ? 'selected' : ''}" data-survey-id="${survey.id}">
+            <span class="tree-item-name">📋 ${escapeHtml(survey.name)}</span>
             <span class="tree-item-count">${photoCount}</span>
-            <div class="tree-item-actions">
-              <button class="btn btn-icon btn-edit-tree" data-id="${node.id}">✏️</button>
-              <button class="btn btn-icon btn-delete-tree" data-id="${node.id}">🗑️</button>
-            </div>
           </div>
         `;
 
-        // 子ノードを再帰的に描画
-        const children = surveyNodes.filter(n => n.parentId === node.id).sort((a, b) => a.order - b.order);
-        children.forEach(child => {
-          html += renderNode(child, depth + 1);
-        });
+        // 現在の調査の場合、階層を表示
+        if (isCurrentSurvey) {
+          const surveyNodes = state.nodes.filter(n => n.surveyId === survey.id);
 
-        return html;
-      }
+          // ルート撮影オプション
+          const rootPhotoCount = state.records.filter(r => r.surveyId === survey.id && r.nodeId === null).length;
+          const isRootSelected = state.currentNodeId === null;
+          html += `
+            <div class="tree-item tree-node ${isRootSelected ? 'selected' : ''}" data-node-id="root" style="padding-left: 16px;">
+              <span class="tree-item-name">📁 ルート</span>
+              <span class="tree-item-count">${rootPhotoCount}</span>
+            </div>
+          `;
 
-      // ルートノード（parentId === null）から開始
-      const rootNodes = surveyNodes.filter(n => n.parentId === null).sort((a, b) => a.order - b.order);
-      container.innerHTML = rootNodes.map(node => renderNode(node, 0)).join('');
+          // ツリー構造を再帰的に描画
+          function renderNode(node, depth) {
+            const photoCount = state.records.filter(r => r.nodeId === node.id).length;
+            const isSelected = node.id === state.currentNodeId;
+            const indent = depth * 10 + 16;
 
-      // イベント設定
-      container.querySelectorAll('.tree-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-          if (e.target.closest('.btn')) return;
-          selectNodeForCapture(item.dataset.id);
+            let nodeHtml = `
+              <div class="tree-item tree-node ${isSelected ? 'selected' : ''}" data-node-id="${node.id}" style="padding-left: ${indent}px;">
+                <span class="tree-item-name">📁 ${escapeHtml(node.name)}</span>
+                <span class="tree-item-count">${photoCount}</span>
+              </div>
+            `;
+
+            const children = surveyNodes.filter(n => n.parentId === node.id).sort((a, b) => a.order - b.order);
+            children.forEach(child => {
+              nodeHtml += renderNode(child, depth + 1);
+            });
+
+            return nodeHtml;
+          }
+
+          const rootNodes = surveyNodes.filter(n => n.parentId === null).sort((a, b) => a.order - b.order);
+          rootNodes.forEach(node => {
+            html += renderNode(node, 1);
+          });
+        }
+      });
+
+      container.innerHTML = html || '<p style="color: var(--text-secondary); font-size: 0.8rem; padding: 8px;">調査がありません</p>';
+
+      // 調査クリックイベント
+      container.querySelectorAll('.tree-survey').forEach(item => {
+        item.addEventListener('click', () => {
+          const surveyId = item.dataset.surveyId;
+          if (surveyId !== state.currentSurveyId) {
+            selectSurvey(surveyId);
+          }
         });
       });
 
-      container.querySelectorAll('.btn-edit-tree').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          openNodeModal(btn.dataset.id);
-        });
-      });
-
-      container.querySelectorAll('.btn-delete-tree').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          deleteNode(btn.dataset.id);
+      // 階層クリックイベント
+      container.querySelectorAll('.tree-node').forEach(item => {
+        item.addEventListener('click', () => {
+          const nodeId = item.dataset.nodeId;
+          if (nodeId === 'root') {
+            state.currentNodeId = null;
+            state.lastRecordId = null;
+            renderBreadcrumbs();
+            renderNodeList();
+            renderLandscapeTree();
+            renderCaptureSection();
+          } else {
+            selectNodeForCapture(nodeId);
+          }
         });
       });
     }
@@ -1618,9 +1663,7 @@
       state.currentNodeId = null;
       state.lastRecordId = null;
 
-      const survey = state.surveys.find(s => s.id === surveyId);
-      $('headerTitle').textContent = survey?.name || 'Flashnap';
-      $('btnBack').classList.remove('hidden');
+      // ヘッダーはFlashnapのまま、戻るボタンも非表示（パンくずで戻れる）
 
       showScreen('capture');
       renderBreadcrumbs();
@@ -1897,6 +1940,7 @@
 
     async function undoCapture() {
       if (!state.lastRecordId) return;
+      if (!confirm('直前の撮影を取り消しますか？')) return;
 
       const recordId = state.lastRecordId;
       await dbDelete('photos', recordId);
@@ -2208,6 +2252,12 @@
         openExportModal();
       });
       $('btnSettings').addEventListener('click', openSettingsModal);
+      $('headerTitle').addEventListener('click', () => {
+        state.currentSurveyId = null;
+        state.currentNodeId = null;
+        showScreen('survey');
+        renderSurveyList();
+      });
 
       // 調査モーダル
       $('btnNewSurvey').addEventListener('click', () => openSurveyModal());
