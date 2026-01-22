@@ -1,0 +1,1914 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4a90d9">
+  <title>Flashnap</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f5f5;
+      --bg-tertiary: #e8e8e8;
+      --text-primary: #1a1a1a;
+      --text-secondary: #666666;
+      --accent: #4a90d9;
+      --accent-hover: #3a7bc8;
+      --danger: #e74c3c;
+      --danger-hover: #c0392b;
+      --success: #27ae60;
+      --border: #ddd;
+      --shadow: rgba(0, 0, 0, 0.1);
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #1a1a2e;
+      --bg-secondary: #16213e;
+      --bg-tertiary: #0f3460;
+      --text-primary: #eaeaea;
+      --text-secondary: #b0b0b0;
+      --border: #2a2a4a;
+      --shadow: rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    /* ヘッダー */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header h1 {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .header-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* ボタン共通 */
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: var(--danger-hover);
+    }
+
+    .btn-icon {
+      padding: 8px;
+      background: transparent;
+      font-size: 1.2rem;
+    }
+
+    /* メインコンテンツ */
+    .main {
+      padding: 16px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* 調査選択画面 */
+    .survey-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .survey-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .survey-item:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .survey-item.active {
+      border-color: var(--accent);
+      border-width: 2px;
+    }
+
+    .survey-info h3 {
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+
+    .survey-info p {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .survey-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    /* 階層表示 */
+    .hierarchy-section {
+      margin-bottom: 24px;
+    }
+
+    .breadcrumbs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+      margin-bottom: 16px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .breadcrumb-item {
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: var(--bg-secondary);
+    }
+
+    .breadcrumb-item:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .breadcrumb-separator {
+      color: var(--text-secondary);
+    }
+
+    .node-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .node-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .node-item:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .node-name {
+      font-weight: 500;
+    }
+
+    .node-count {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .node-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    /* 撮影セクション */
+    .capture-section {
+      text-align: center;
+      padding: 24px 0;
+    }
+
+    .current-number {
+      font-size: 4rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .current-path {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      word-break: break-all;
+    }
+
+    .current-count {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+
+    .capture-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn-capture {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      font-size: 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-undo {
+      padding: 12px 24px;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    /* 最近の撮影 */
+    .recent-section {
+      margin-top: 32px;
+    }
+
+    .recent-section h3 {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .recent-list {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+
+    .recent-item {
+      flex-shrink: 0;
+      width: 80px;
+      height: 80px;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .recent-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .recent-item-name {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      font-size: 0.65rem;
+      padding: 2px 4px;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* モーダル */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--bg-primary);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-header h2 {
+      font-size: 1.1rem;
+    }
+
+    .modal-body {
+      padding: 16px;
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      padding: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* フォーム */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* 設定 */
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .setting-item:last-child {
+      border-bottom: none;
+    }
+
+    .setting-label {
+      font-weight: 500;
+    }
+
+    .setting-desc {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    /* トグルスイッチ */
+    .toggle {
+      position: relative;
+      width: 48px;
+      height: 28px;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: var(--bg-tertiary);
+      border-radius: 28px;
+      transition: 0.3s;
+    }
+
+    .toggle-slider:before {
+      content: '';
+      position: absolute;
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: 0.3s;
+    }
+
+    .toggle input:checked + .toggle-slider {
+      background: var(--accent);
+    }
+
+    .toggle input:checked + .toggle-slider:before {
+      transform: translateX(20px);
+    }
+
+    /* エクスポート写真一覧 */
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .photo-item {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .photo-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .photo-item-delete {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--danger);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .photo-item-name {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      font-size: 0.6rem;
+      padding: 4px;
+      text-align: center;
+    }
+
+    /* テンプレート一覧 */
+    .template-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .template-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+    }
+
+    /* 統計 */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 12px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    /* 空状態 */
+    .empty-state {
+      text-align: center;
+      padding: 48px 16px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+    }
+
+    /* ユーティリティ */
+    .hidden {
+      display: none !important;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    .mt-16 {
+      margin-top: 16px;
+    }
+
+    .mb-16 {
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <!-- ヘッダー -->
+  <header class="header">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button class="btn btn-icon hidden" id="btnBack" title="戻る">
+        <span>←</span>
+      </button>
+      <h1 id="headerTitle">Flashnap</h1>
+    </div>
+    <div class="header-buttons">
+      <button class="btn btn-icon" id="btnExport" title="エクスポート">
+        <span>📤</span>
+      </button>
+      <button class="btn btn-icon" id="btnSettings" title="設定">
+        <span>⚙️</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- メインコンテンツ -->
+  <main class="main">
+    <!-- 調査選択画面 -->
+    <section id="surveyScreen">
+      <div class="survey-list" id="surveyList"></div>
+      <button class="btn btn-primary mt-16" id="btnNewSurvey" style="width: 100%;">
+        + 新規調査を作成
+      </button>
+    </section>
+
+    <!-- 撮影画面 -->
+    <section id="captureScreen" class="hidden">
+      <!-- パンくず -->
+      <div class="breadcrumbs" id="breadcrumbs"></div>
+
+      <!-- 階層一覧 -->
+      <div class="hierarchy-section">
+        <div class="node-list" id="nodeList"></div>
+        <button class="btn btn-secondary mt-16" id="btnAddNode" style="width: 100%;">
+          + 階層を追加
+        </button>
+      </div>
+
+      <!-- 撮影セクション -->
+      <div class="capture-section">
+        <div class="current-number" id="currentNumber">001</div>
+        <div class="current-path" id="currentPath">撮影場所を選択してください</div>
+        <div class="current-count" id="currentCount">0枚撮影済み</div>
+        <div class="capture-buttons">
+          <input type="file" id="fileInput" accept="image/*" capture="environment">
+          <button class="btn btn-primary btn-capture" id="btnCapture">
+            <span>📷</span>
+          </button>
+          <button class="btn btn-secondary btn-undo hidden" id="btnUndo">
+            ↩️ 取り消し
+          </button>
+        </div>
+      </div>
+
+      <!-- 最近の撮影 -->
+      <div class="recent-section">
+        <h3>最近の撮影</h3>
+        <div class="recent-list" id="recentList"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 調査作成/編集モーダル -->
+  <div class="modal-overlay" id="surveyModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="surveyModalTitle">新規調査</h2>
+        <button class="btn btn-icon" id="btnCloseSurveyModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="surveyName">調査名</label>
+          <input type="text" id="surveyName" placeholder="例: 本館点検">
+        </div>
+        <div class="form-group">
+          <label for="templateSelect">テンプレート</label>
+          <select id="templateSelect">
+            <option value="">テンプレートなし</option>
+          </select>
+        </div>
+        <details class="mt-16">
+          <summary style="cursor: pointer; color: var(--text-secondary);">連番設定をカスタマイズ</summary>
+          <div class="mt-16">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="surveyDigits">桁数</label>
+                <select id="surveyDigits">
+                  <option value="">デフォルト</option>
+                  <option value="2">2桁</option>
+                  <option value="3">3桁</option>
+                  <option value="4">4桁</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="surveyStartNum">開始番号</label>
+                <input type="number" id="surveyStartNum" placeholder="デフォルト" min="0">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="surveyPrefix">プレフィックス</label>
+                <input type="text" id="surveyPrefix" placeholder="例: A-">
+              </div>
+              <div class="form-group">
+                <label for="surveySeparator">区切り文字</label>
+                <select id="surveySeparator">
+                  <option value="">デフォルト</option>
+                  <option value="-">-（ハイフン）</option>
+                  <option value="_">_（アンダースコア）</option>
+                  <option value="">なし</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>
+                <input type="checkbox" id="surveyZeroPad"> ゼロ埋め
+              </label>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelSurvey">キャンセル</button>
+        <button class="btn btn-primary" id="btnSaveSurvey">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 階層追加/編集モーダル -->
+  <div class="modal-overlay" id="nodeModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="nodeModalTitle">階層を追加</h2>
+        <button class="btn btn-icon" id="btnCloseNodeModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="nodeName">階層名</label>
+          <input type="text" id="nodeName" placeholder="例: 1階">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelNode">キャンセル</button>
+        <button class="btn btn-primary" id="btnSaveNode">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- エクスポートモーダル -->
+  <div class="modal-overlay" id="exportModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>エクスポート</h2>
+        <button class="btn btn-icon" id="btnCloseExportModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="stats" id="exportStats"></div>
+        <div class="photo-grid" id="photoGrid"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelExport">閉じる</button>
+        <button class="btn btn-primary" id="btnDownloadZip">ZIPダウンロード</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 設定モーダル -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>設定</h2>
+        <button class="btn btn-icon" id="btnCloseSettingsModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- ダークモード -->
+        <div class="setting-item">
+          <div>
+            <div class="setting-label">ダークモード</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="darkModeToggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <!-- デフォルト連番設定 -->
+        <h3 class="mt-16 mb-16">デフォルト連番設定</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="defaultDigits">桁数</label>
+            <select id="defaultDigits">
+              <option value="2">2桁</option>
+              <option value="3" selected>3桁</option>
+              <option value="4">4桁</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="defaultStartNum">開始番号</label>
+            <input type="number" id="defaultStartNum" value="1" min="0">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="defaultPrefix">プレフィックス</label>
+            <input type="text" id="defaultPrefix" placeholder="なし">
+          </div>
+          <div class="form-group">
+            <label for="defaultSeparator">区切り文字</label>
+            <select id="defaultSeparator">
+              <option value="-">-（ハイフン）</option>
+              <option value="_">_（アンダースコア）</option>
+              <option value="">なし</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="defaultZeroPad" checked> ゼロ埋め
+          </label>
+        </div>
+
+        <!-- テンプレート -->
+        <h3 class="mt-16 mb-16">テンプレート</h3>
+        <div class="template-list" id="templateList"></div>
+        <button class="btn btn-secondary mt-16" id="btnSaveTemplate" style="width: 100%;">
+          現在の階層をテンプレートとして保存
+        </button>
+
+        <!-- 危険操作 -->
+        <h3 class="mt-16 mb-16" style="color: var(--danger);">危険な操作</h3>
+        <button class="btn btn-secondary mb-16" id="btnUpdateApp" style="width: 100%;">
+          アプリを更新
+        </button>
+        <button class="btn btn-danger" id="btnResetData" style="width: 100%;">
+          データをリセット
+        </button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btnSaveSettings">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JSZip -->
+  <script src="lib/jszip.min.js"></script>
+
+  <script>
+    // ============================================
+    // IndexedDB
+    // ============================================
+    const DB_NAME = 'flashnap';
+    const DB_VERSION = 1;
+    let db = null;
+
+    async function initDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          db = request.result;
+          resolve(db);
+        };
+
+        request.onupgradeneeded = (event) => {
+          const database = event.target.result;
+
+          // 調査
+          if (!database.objectStoreNames.contains('surveys')) {
+            const surveys = database.createObjectStore('surveys', { keyPath: 'id' });
+            surveys.createIndex('createdAt', 'createdAt');
+          }
+
+          // 階層ノード
+          if (!database.objectStoreNames.contains('nodes')) {
+            const nodes = database.createObjectStore('nodes', { keyPath: 'id' });
+            nodes.createIndex('surveyId', 'surveyId');
+            nodes.createIndex('parentId', 'parentId');
+          }
+
+          // 撮影記録
+          if (!database.objectStoreNames.contains('records')) {
+            const records = database.createObjectStore('records', { keyPath: 'id' });
+            records.createIndex('surveyId', 'surveyId');
+            records.createIndex('nodeId', 'nodeId');
+          }
+
+          // 写真バイナリ
+          if (!database.objectStoreNames.contains('photos')) {
+            database.createObjectStore('photos', { keyPath: 'id' });
+          }
+
+          // テンプレート
+          if (!database.objectStoreNames.contains('templates')) {
+            database.createObjectStore('templates', { keyPath: 'id' });
+          }
+
+          // 設定
+          if (!database.objectStoreNames.contains('settings')) {
+            database.createObjectStore('settings', { keyPath: 'key' });
+          }
+        };
+      });
+    }
+
+    // DB汎用操作
+    function dbOperation(storeName, mode, operation) {
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(storeName, mode);
+        const store = transaction.objectStore(storeName);
+        const request = operation(store);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function dbGetAll(storeName) {
+      return dbOperation(storeName, 'readonly', store => store.getAll());
+    }
+
+    async function dbGet(storeName, key) {
+      return dbOperation(storeName, 'readonly', store => store.get(key));
+    }
+
+    async function dbPut(storeName, data) {
+      return dbOperation(storeName, 'readwrite', store => store.put(data));
+    }
+
+    async function dbDelete(storeName, key) {
+      return dbOperation(storeName, 'readwrite', store => store.delete(key));
+    }
+
+    async function dbGetByIndex(storeName, indexName, value) {
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(storeName, 'readonly');
+        const store = transaction.objectStore(storeName);
+        const index = store.index(indexName);
+        const request = index.getAll(value);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function dbClear(storeName) {
+      return dbOperation(storeName, 'readwrite', store => store.clear());
+    }
+
+    // ============================================
+    // 状態管理
+    // ============================================
+    let state = {
+      currentSurveyId: null,
+      currentNodeId: null,
+      lastRecordId: null,
+      surveys: [],
+      nodes: [],
+      records: [],
+      templates: [],
+      settings: {
+        darkMode: false,
+        digits: 3,
+        startNum: 1,
+        zeroPad: true,
+        prefix: '',
+        separator: '-'
+      }
+    };
+
+    // ============================================
+    // ヘルパー関数
+    // ============================================
+    function generateId() {
+      return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    }
+
+    function buildHierarchyTree(nodes, parentId = null) {
+      return nodes
+        .filter(n => n.parentId === parentId)
+        .sort((a, b) => a.order - b.order)
+        .map(node => ({
+          ...node,
+          children: buildHierarchyTree(nodes, node.id)
+        }));
+    }
+
+    function buildBreadcrumbs(nodeId, nodesMap) {
+      const crumbs = [];
+      let current = nodesMap.get(nodeId);
+      while (current) {
+        crumbs.unshift(current);
+        current = current.parentId ? nodesMap.get(current.parentId) : null;
+      }
+      return crumbs;
+    }
+
+    function getHierarchyNames(nodeId, nodesMap) {
+      return buildBreadcrumbs(nodeId, nodesMap).map(n => n.name);
+    }
+
+    function formatNumber(num, settings) {
+      const s = settings || state.settings;
+      let result = num.toString();
+      if (s.zeroPad) {
+        result = result.padStart(s.digits, '0');
+      }
+      return (s.prefix || '') + result;
+    }
+
+    function getNextNumber(nodeId) {
+      const records = state.records.filter(r =>
+        r.surveyId === state.currentSurveyId && r.nodeId === nodeId
+      );
+      if (records.length === 0) {
+        return getSurveySettings().startNum;
+      }
+      return Math.max(...records.map(r => r.number)) + 1;
+    }
+
+    function getSurveySettings() {
+      const survey = state.surveys.find(s => s.id === state.currentSurveyId);
+      const defaults = state.settings;
+      if (!survey || !survey.settings) return defaults;
+      return {
+        digits: survey.settings.digits ?? defaults.digits,
+        startNum: survey.settings.startNum ?? defaults.startNum,
+        zeroPad: survey.settings.zeroPad ?? defaults.zeroPad,
+        prefix: survey.settings.prefix ?? defaults.prefix,
+        separator: survey.settings.separator ?? defaults.separator
+      };
+    }
+
+    function getNodesMap() {
+      return new Map(state.nodes.map(n => [n.id, n]));
+    }
+
+    // ============================================
+    // UI レンダリング
+    // ============================================
+    const $ = id => document.getElementById(id);
+
+    function showScreen(screenId) {
+      $('surveyScreen').classList.toggle('hidden', screenId !== 'survey');
+      $('captureScreen').classList.toggle('hidden', screenId !== 'capture');
+    }
+
+    function renderSurveyList() {
+      const list = $('surveyList');
+      if (state.surveys.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <p>調査がありません</p>
+            <p>新規調査を作成してください</p>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = state.surveys
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .map(survey => {
+          const photoCount = state.records.filter(r => r.surveyId === survey.id).length;
+          const nodeCount = state.nodes.filter(n => n.surveyId === survey.id).length;
+          return `
+            <div class="survey-item ${survey.id === state.currentSurveyId ? 'active' : ''}"
+                 data-id="${survey.id}">
+              <div class="survey-info">
+                <h3>${escapeHtml(survey.name)}</h3>
+                <p>写真: ${photoCount}枚 / 階層: ${nodeCount}</p>
+              </div>
+              <div class="survey-actions">
+                <button class="btn btn-icon btn-edit-survey" data-id="${survey.id}">✏️</button>
+                <button class="btn btn-icon btn-delete-survey" data-id="${survey.id}">🗑️</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+      // イベント設定
+      list.querySelectorAll('.survey-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          if (e.target.closest('.btn')) return;
+          selectSurvey(item.dataset.id);
+        });
+      });
+
+      list.querySelectorAll('.btn-edit-survey').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openSurveyModal(btn.dataset.id);
+        });
+      });
+
+      list.querySelectorAll('.btn-delete-survey').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteSurvey(btn.dataset.id);
+        });
+      });
+    }
+
+    function renderBreadcrumbs() {
+      const container = $('breadcrumbs');
+      const nodesMap = getNodesMap();
+
+      // 調査に戻るリンク
+      const survey = state.surveys.find(s => s.id === state.currentSurveyId);
+      let html = `<span class="breadcrumb-item" data-id="survey">${escapeHtml(survey?.name || '調査')}</span>`;
+
+      if (state.currentNodeId) {
+        const crumbs = buildBreadcrumbs(state.currentNodeId, nodesMap);
+        crumbs.forEach((node, i) => {
+          html += `<span class="breadcrumb-separator">›</span>`;
+          html += `<span class="breadcrumb-item" data-id="${node.id}">${escapeHtml(node.name)}</span>`;
+        });
+      }
+
+      container.innerHTML = html;
+
+      // イベント設定
+      container.querySelectorAll('.breadcrumb-item').forEach(item => {
+        item.addEventListener('click', () => {
+          if (item.dataset.id === 'survey') {
+            state.currentSurveyId = null;
+            state.currentNodeId = null;
+            showScreen('survey');
+            renderSurveyList();
+          } else {
+            navigateToNode(item.dataset.id);
+          }
+        });
+      });
+    }
+
+    function renderNodeList() {
+      const container = $('nodeList');
+      const surveyNodes = state.nodes.filter(n => n.surveyId === state.currentSurveyId);
+      const children = surveyNodes.filter(n => n.parentId === state.currentNodeId);
+
+      if (children.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📁</div>
+            <p>階層がありません</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = children
+        .sort((a, b) => a.order - b.order)
+        .map(node => {
+          const photoCount = state.records.filter(r => r.nodeId === node.id).length;
+          const hasChildren = surveyNodes.some(n => n.parentId === node.id);
+          return `
+            <div class="node-item" data-id="${node.id}">
+              <div>
+                <span class="node-name">${escapeHtml(node.name)}</span>
+                <span class="node-count">${photoCount}枚 ${hasChildren ? '▶' : ''}</span>
+              </div>
+              <div class="node-actions">
+                <button class="btn btn-icon btn-edit-node" data-id="${node.id}">✏️</button>
+                <button class="btn btn-icon btn-delete-node" data-id="${node.id}">🗑️</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+      // イベント設定
+      container.querySelectorAll('.node-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          if (e.target.closest('.btn')) return;
+          navigateToNode(item.dataset.id);
+        });
+      });
+
+      container.querySelectorAll('.btn-edit-node').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openNodeModal(btn.dataset.id);
+        });
+      });
+
+      container.querySelectorAll('.btn-delete-node').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteNode(btn.dataset.id);
+        });
+      });
+    }
+
+    function renderCaptureSection() {
+      const nodesMap = getNodesMap();
+      const settings = getSurveySettings();
+      const survey = state.surveys.find(s => s.id === state.currentSurveyId);
+
+      // 現在の番号
+      const nextNum = getNextNumber(state.currentNodeId);
+      $('currentNumber').textContent = formatNumber(nextNum, settings);
+
+      // パス表示
+      if (state.currentNodeId) {
+        const names = getHierarchyNames(state.currentNodeId, nodesMap);
+        $('currentPath').textContent = names.join(settings.separator);
+      } else {
+        $('currentPath').textContent = survey?.name || '調査';
+      }
+
+      // 現在の階層の撮影枚数
+      const count = state.records.filter(r =>
+        r.surveyId === state.currentSurveyId && r.nodeId === state.currentNodeId
+      ).length;
+      $('currentCount').textContent = `${count}枚撮影済み`;
+
+      // 取り消しボタン
+      $('btnUndo').classList.toggle('hidden', !state.lastRecordId);
+    }
+
+    function renderRecentList() {
+      const container = $('recentList');
+      const surveyRecords = state.records
+        .filter(r => r.surveyId === state.currentSurveyId)
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .slice(0, 10);
+
+      if (surveyRecords.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary);">まだ撮影がありません</p>';
+        return;
+      }
+
+      container.innerHTML = '';
+      surveyRecords.forEach(async record => {
+        const photo = await dbGet('photos', record.id);
+        if (!photo) return;
+
+        const div = document.createElement('div');
+        div.className = 'recent-item';
+        div.innerHTML = `
+          <img src="${photo.dataUrl}" alt="${record.filename}">
+          <div class="recent-item-name">${escapeHtml(record.filename)}</div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function renderTemplateList() {
+      const container = $('templateList');
+      if (state.templates.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary);">テンプレートがありません</p>';
+        return;
+      }
+
+      container.innerHTML = state.templates.map(t => `
+        <div class="template-item">
+          <span>${escapeHtml(t.name)}</span>
+          <button class="btn btn-icon btn-delete-template" data-id="${t.id}">🗑️</button>
+        </div>
+      `).join('');
+
+      container.querySelectorAll('.btn-delete-template').forEach(btn => {
+        btn.addEventListener('click', () => deleteTemplate(btn.dataset.id));
+      });
+    }
+
+    function renderTemplateSelect() {
+      const select = $('templateSelect');
+      select.innerHTML = '<option value="">テンプレートなし</option>' +
+        state.templates.map(t => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ============================================
+    // 調査操作
+    // ============================================
+    async function selectSurvey(surveyId) {
+      state.currentSurveyId = surveyId;
+      state.currentNodeId = null;
+      state.lastRecordId = null;
+
+      const survey = state.surveys.find(s => s.id === surveyId);
+      $('headerTitle').textContent = survey?.name || 'Flashnap';
+      $('btnBack').classList.remove('hidden');
+
+      showScreen('capture');
+      renderBreadcrumbs();
+      renderNodeList();
+      renderCaptureSection();
+      renderRecentList();
+    }
+
+    function openSurveyModal(surveyId = null) {
+      const modal = $('surveyModal');
+      const isEdit = !!surveyId;
+
+      $('surveyModalTitle').textContent = isEdit ? '調査を編集' : '新規調査';
+
+      if (isEdit) {
+        const survey = state.surveys.find(s => s.id === surveyId);
+        $('surveyName').value = survey.name;
+        $('templateSelect').value = '';
+        if (survey.settings) {
+          $('surveyDigits').value = survey.settings.digits || '';
+          $('surveyStartNum').value = survey.settings.startNum ?? '';
+          $('surveyPrefix').value = survey.settings.prefix || '';
+          $('surveySeparator').value = survey.settings.separator ?? '';
+          $('surveyZeroPad').checked = survey.settings.zeroPad ?? true;
+        }
+      } else {
+        $('surveyName').value = '';
+        $('templateSelect').value = '';
+        $('surveyDigits').value = '';
+        $('surveyStartNum').value = '';
+        $('surveyPrefix').value = '';
+        $('surveySeparator').value = '';
+        $('surveyZeroPad').checked = true;
+      }
+
+      modal.dataset.editId = surveyId || '';
+      renderTemplateSelect();
+      modal.classList.add('active');
+    }
+
+    async function saveSurvey() {
+      const modal = $('surveyModal');
+      const editId = modal.dataset.editId;
+      const name = $('surveyName').value.trim();
+
+      if (!name) {
+        alert('調査名を入力してください');
+        return;
+      }
+
+      const settings = {};
+      if ($('surveyDigits').value) settings.digits = parseInt($('surveyDigits').value);
+      if ($('surveyStartNum').value !== '') settings.startNum = parseInt($('surveyStartNum').value);
+      if ($('surveyPrefix').value) settings.prefix = $('surveyPrefix').value;
+      if ($('surveySeparator').value !== '') settings.separator = $('surveySeparator').value;
+      settings.zeroPad = $('surveyZeroPad').checked;
+
+      if (editId) {
+        // 編集
+        const survey = state.surveys.find(s => s.id === editId);
+        survey.name = name;
+        survey.settings = Object.keys(settings).length > 0 ? settings : null;
+        await dbPut('surveys', survey);
+      } else {
+        // 新規作成
+        const survey = {
+          id: generateId(),
+          name,
+          settings: Object.keys(settings).length > 0 ? settings : null,
+          createdAt: Date.now()
+        };
+        await dbPut('surveys', survey);
+        state.surveys.push(survey);
+
+        // テンプレート適用
+        const templateId = $('templateSelect').value;
+        if (templateId) {
+          await applyTemplate(survey.id, templateId);
+        }
+      }
+
+      modal.classList.remove('active');
+      renderSurveyList();
+    }
+
+    async function deleteSurvey(surveyId) {
+      if (!confirm('この調査を削除しますか？\n関連する全ての写真と階層も削除されます。')) return;
+
+      // 関連データ削除
+      const records = state.records.filter(r => r.surveyId === surveyId);
+      for (const record of records) {
+        await dbDelete('photos', record.id);
+        await dbDelete('records', record.id);
+      }
+      state.records = state.records.filter(r => r.surveyId !== surveyId);
+
+      const nodes = state.nodes.filter(n => n.surveyId === surveyId);
+      for (const node of nodes) {
+        await dbDelete('nodes', node.id);
+      }
+      state.nodes = state.nodes.filter(n => n.surveyId !== surveyId);
+
+      await dbDelete('surveys', surveyId);
+      state.surveys = state.surveys.filter(s => s.id !== surveyId);
+
+      if (state.currentSurveyId === surveyId) {
+        state.currentSurveyId = null;
+        state.currentNodeId = null;
+      }
+
+      renderSurveyList();
+    }
+
+    // ============================================
+    // 階層操作
+    // ============================================
+    function navigateToNode(nodeId) {
+      state.currentNodeId = nodeId;
+      state.lastRecordId = null;
+      renderBreadcrumbs();
+      renderNodeList();
+      renderCaptureSection();
+    }
+
+    function openNodeModal(nodeId = null) {
+      const modal = $('nodeModal');
+      const isEdit = !!nodeId;
+
+      $('nodeModalTitle').textContent = isEdit ? '階層を編集' : '階層を追加';
+
+      if (isEdit) {
+        const node = state.nodes.find(n => n.id === nodeId);
+        $('nodeName').value = node.name;
+      } else {
+        $('nodeName').value = '';
+      }
+
+      modal.dataset.editId = nodeId || '';
+      modal.classList.add('active');
+    }
+
+    async function saveNode() {
+      const modal = $('nodeModal');
+      const editId = modal.dataset.editId;
+      const name = $('nodeName').value.trim();
+
+      if (!name) {
+        alert('階層名を入力してください');
+        return;
+      }
+
+      if (editId) {
+        // 編集
+        const node = state.nodes.find(n => n.id === editId);
+        node.name = name;
+        await dbPut('nodes', node);
+      } else {
+        // 新規作成
+        const siblings = state.nodes.filter(n =>
+          n.surveyId === state.currentSurveyId && n.parentId === state.currentNodeId
+        );
+        const node = {
+          id: generateId(),
+          surveyId: state.currentSurveyId,
+          parentId: state.currentNodeId,
+          name,
+          order: siblings.length,
+          createdAt: Date.now()
+        };
+        await dbPut('nodes', node);
+        state.nodes.push(node);
+      }
+
+      modal.classList.remove('active');
+      renderNodeList();
+    }
+
+    async function deleteNode(nodeId) {
+      if (!confirm('この階層を削除しますか？\n子階層と写真も削除されます。')) return;
+
+      // 再帰的に子ノードを取得
+      const getDescendants = (id) => {
+        const children = state.nodes.filter(n => n.parentId === id);
+        return [id, ...children.flatMap(c => getDescendants(c.id))];
+      };
+
+      const nodeIds = getDescendants(nodeId);
+
+      // 関連写真削除
+      for (const nid of nodeIds) {
+        const records = state.records.filter(r => r.nodeId === nid);
+        for (const record of records) {
+          await dbDelete('photos', record.id);
+          await dbDelete('records', record.id);
+        }
+        state.records = state.records.filter(r => r.nodeId !== nid);
+      }
+
+      // ノード削除
+      for (const nid of nodeIds) {
+        await dbDelete('nodes', nid);
+      }
+      state.nodes = state.nodes.filter(n => !nodeIds.includes(n.id));
+
+      if (state.currentNodeId === nodeId) {
+        const node = state.nodes.find(n => n.id === nodeId);
+        state.currentNodeId = node?.parentId || null;
+      }
+
+      renderNodeList();
+      renderCaptureSection();
+    }
+
+    // ============================================
+    // 撮影機能
+    // ============================================
+    async function handleCapture(file) {
+      const nodesMap = getNodesMap();
+      const settings = getSurveySettings();
+      const survey = state.surveys.find(s => s.id === state.currentSurveyId);
+      const nextNum = getNextNumber(state.currentNodeId);
+
+      // ファイル名生成
+      let filename;
+      if (state.currentNodeId) {
+        const names = getHierarchyNames(state.currentNodeId, nodesMap);
+        filename = names.join(settings.separator) + settings.separator + formatNumber(nextNum, settings) + '.jpg';
+      } else {
+        filename = (survey?.name || '調査') + settings.separator + formatNumber(nextNum, settings) + '.jpg';
+      }
+
+      // 画像をDataURLに変換
+      const dataUrl = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.readAsDataURL(file);
+      });
+
+      // 記録保存
+      const record = {
+        id: generateId(),
+        surveyId: state.currentSurveyId,
+        nodeId: state.currentNodeId,
+        number: nextNum,
+        filename,
+        createdAt: Date.now()
+      };
+      await dbPut('records', record);
+      state.records.push(record);
+
+      // 写真保存
+      await dbPut('photos', { id: record.id, dataUrl });
+
+      state.lastRecordId = record.id;
+      renderCaptureSection();
+      renderRecentList();
+    }
+
+    async function undoCapture() {
+      if (!state.lastRecordId) return;
+
+      const recordId = state.lastRecordId;
+      await dbDelete('photos', recordId);
+      await dbDelete('records', recordId);
+      state.records = state.records.filter(r => r.id !== recordId);
+      state.lastRecordId = null;
+
+      renderCaptureSection();
+      renderRecentList();
+    }
+
+    // ============================================
+    // エクスポート
+    // ============================================
+    async function openExportModal() {
+      const modal = $('exportModal');
+      const records = state.records.filter(r => r.surveyId === state.currentSurveyId);
+      const nodes = state.nodes.filter(n => n.surveyId === state.currentSurveyId);
+
+      // 統計
+      $('exportStats').innerHTML = `
+        <div class="stat-item">
+          <div class="stat-value">${records.length}</div>
+          <div class="stat-label">写真</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">${nodes.length}</div>
+          <div class="stat-label">階層</div>
+        </div>
+      `;
+
+      // 写真一覧
+      const grid = $('photoGrid');
+      grid.innerHTML = '';
+
+      for (const record of records) {
+        const photo = await dbGet('photos', record.id);
+        if (!photo) continue;
+
+        const div = document.createElement('div');
+        div.className = 'photo-item';
+        div.innerHTML = `
+          <img src="${photo.dataUrl}" alt="${record.filename}">
+          <button class="photo-item-delete" data-id="${record.id}">✕</button>
+          <div class="photo-item-name">${escapeHtml(record.filename)}</div>
+        `;
+        grid.appendChild(div);
+      }
+
+      grid.querySelectorAll('.photo-item-delete').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('この写真を削除しますか？')) return;
+          await deletePhoto(btn.dataset.id);
+          openExportModal(); // 再描画
+        });
+      });
+
+      modal.classList.add('active');
+    }
+
+    async function deletePhoto(recordId) {
+      await dbDelete('photos', recordId);
+      await dbDelete('records', recordId);
+      state.records = state.records.filter(r => r.id !== recordId);
+      if (state.lastRecordId === recordId) {
+        state.lastRecordId = null;
+      }
+      renderCaptureSection();
+      renderRecentList();
+    }
+
+    async function downloadZip() {
+      const survey = state.surveys.find(s => s.id === state.currentSurveyId);
+      const records = state.records.filter(r => r.surveyId === state.currentSurveyId);
+
+      if (records.length === 0) {
+        alert('エクスポートする写真がありません');
+        return;
+      }
+
+      const zip = new JSZip();
+      const nodesMap = getNodesMap();
+      const settings = getSurveySettings();
+
+      for (const record of records) {
+        const photo = await dbGet('photos', record.id);
+        if (!photo) continue;
+
+        // フォルダパス生成
+        const names = getHierarchyNames(record.nodeId, nodesMap);
+        const folderPath = names.join('/');
+        const base64 = photo.dataUrl.split(',')[1];
+
+        zip.file(`${folderPath}/${record.filename}`, base64, { base64: true });
+      }
+
+      const content = await zip.generateAsync({ type: 'blob' });
+      const date = new Date().toISOString().split('T')[0];
+      const filename = `${survey.name}_${date}.zip`;
+
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(content);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+
+      $('exportModal').classList.remove('active');
+    }
+
+    // ============================================
+    // テンプレート
+    // ============================================
+    async function saveAsTemplate() {
+      if (!state.currentSurveyId) {
+        alert('調査を選択してください');
+        return;
+      }
+
+      const surveyNodes = state.nodes.filter(n => n.surveyId === state.currentSurveyId);
+      if (surveyNodes.length === 0) {
+        alert('保存する階層がありません');
+        return;
+      }
+
+      const name = prompt('テンプレート名を入力してください');
+      if (!name) return;
+
+      // ノード構造をコピー（IDを除く）
+      const nodesCopy = surveyNodes.map(n => ({
+        name: n.name,
+        parentId: n.parentId,
+        order: n.order
+      }));
+
+      // parentIdをインデックスに変換
+      const idToIndex = new Map(surveyNodes.map((n, i) => [n.id, i]));
+      nodesCopy.forEach(n => {
+        n.parentIndex = n.parentId ? idToIndex.get(n.parentId) : null;
+        delete n.parentId;
+      });
+
+      const template = {
+        id: generateId(),
+        name,
+        nodes: nodesCopy,
+        createdAt: Date.now()
+      };
+
+      await dbPut('templates', template);
+      state.templates.push(template);
+      renderTemplateList();
+      renderTemplateSelect();
+    }
+
+    async function applyTemplate(surveyId, templateId) {
+      const template = state.templates.find(t => t.id === templateId);
+      if (!template) return;
+
+      const newIds = [];
+
+      for (const nodeDef of template.nodes) {
+        const node = {
+          id: generateId(),
+          surveyId,
+          parentId: nodeDef.parentIndex !== null ? newIds[nodeDef.parentIndex] : null,
+          name: nodeDef.name,
+          order: nodeDef.order,
+          createdAt: Date.now()
+        };
+        await dbPut('nodes', node);
+        state.nodes.push(node);
+        newIds.push(node.id);
+      }
+    }
+
+    async function deleteTemplate(templateId) {
+      if (!confirm('このテンプレートを削除しますか？')) return;
+      await dbDelete('templates', templateId);
+      state.templates = state.templates.filter(t => t.id !== templateId);
+      renderTemplateList();
+      renderTemplateSelect();
+    }
+
+    // ============================================
+    // 設定
+    // ============================================
+    function openSettingsModal() {
+      const modal = $('settingsModal');
+      const s = state.settings;
+
+      $('darkModeToggle').checked = s.darkMode;
+      $('defaultDigits').value = s.digits;
+      $('defaultStartNum').value = s.startNum;
+      $('defaultPrefix').value = s.prefix;
+      $('defaultSeparator').value = s.separator;
+      $('defaultZeroPad').checked = s.zeroPad;
+
+      renderTemplateList();
+      modal.classList.add('active');
+    }
+
+    async function saveSettings() {
+      state.settings = {
+        darkMode: $('darkModeToggle').checked,
+        digits: parseInt($('defaultDigits').value),
+        startNum: parseInt($('defaultStartNum').value),
+        prefix: $('defaultPrefix').value,
+        separator: $('defaultSeparator').value,
+        zeroPad: $('defaultZeroPad').checked
+      };
+
+      await dbPut('settings', { key: 'app', ...state.settings });
+      applyTheme();
+      $('settingsModal').classList.remove('active');
+
+      if (state.currentSurveyId) {
+        renderCaptureSection();
+      }
+    }
+
+    function applyTheme() {
+      document.documentElement.dataset.theme = state.settings.darkMode ? 'dark' : 'light';
+    }
+
+    async function updateApp() {
+      if (!confirm('アプリを更新しますか？')) return;
+
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+          await registration.unregister();
+        }
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+      }
+
+      location.reload();
+    }
+
+    async function resetData() {
+      if (!confirm('全てのデータを削除しますか？\nこの操作は取り消せません。')) return;
+      if (!confirm('本当に削除しますか？')) return;
+
+      await dbClear('surveys');
+      await dbClear('nodes');
+      await dbClear('records');
+      await dbClear('photos');
+      await dbClear('templates');
+
+      state.surveys = [];
+      state.nodes = [];
+      state.records = [];
+      state.templates = [];
+      state.currentSurveyId = null;
+      state.currentNodeId = null;
+      state.lastRecordId = null;
+
+      $('settingsModal').classList.remove('active');
+      showScreen('survey');
+      renderSurveyList();
+    }
+
+    // ============================================
+    // 初期化
+    // ============================================
+    async function init() {
+      await initDB();
+
+      // データ読み込み
+      state.surveys = await dbGetAll('surveys');
+      state.nodes = await dbGetAll('nodes');
+      state.records = await dbGetAll('records');
+      state.templates = await dbGetAll('templates');
+
+      const savedSettings = await dbGet('settings', 'app');
+      if (savedSettings) {
+        state.settings = { ...state.settings, ...savedSettings };
+      }
+
+      applyTheme();
+      showScreen('survey');
+      renderSurveyList();
+
+      // Service Worker登録
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js');
+      }
+
+      // イベントリスナー設定
+      setupEventListeners();
+    }
+
+    function setupEventListeners() {
+      // ヘッダーボタン
+      $('btnBack').addEventListener('click', () => {
+        state.currentSurveyId = null;
+        state.currentNodeId = null;
+        $('headerTitle').textContent = 'Flashnap';
+        $('btnBack').classList.add('hidden');
+        showScreen('survey');
+        renderSurveyList();
+      });
+      $('btnExport').addEventListener('click', () => {
+        if (!state.currentSurveyId) {
+          alert('調査を選択してください');
+          return;
+        }
+        openExportModal();
+      });
+      $('btnSettings').addEventListener('click', openSettingsModal);
+
+      // 調査モーダル
+      $('btnNewSurvey').addEventListener('click', () => openSurveyModal());
+      $('btnCloseSurveyModal').addEventListener('click', () => $('surveyModal').classList.remove('active'));
+      $('btnCancelSurvey').addEventListener('click', () => $('surveyModal').classList.remove('active'));
+      $('btnSaveSurvey').addEventListener('click', saveSurvey);
+
+      // 階層モーダル
+      $('btnAddNode').addEventListener('click', () => openNodeModal());
+      $('btnCloseNodeModal').addEventListener('click', () => $('nodeModal').classList.remove('active'));
+      $('btnCancelNode').addEventListener('click', () => $('nodeModal').classList.remove('active'));
+      $('btnSaveNode').addEventListener('click', saveNode);
+
+      // エクスポートモーダル
+      $('btnCloseExportModal').addEventListener('click', () => $('exportModal').classList.remove('active'));
+      $('btnCancelExport').addEventListener('click', () => $('exportModal').classList.remove('active'));
+      $('btnDownloadZip').addEventListener('click', downloadZip);
+
+      // 設定モーダル
+      $('btnCloseSettingsModal').addEventListener('click', () => $('settingsModal').classList.remove('active'));
+      $('btnSaveSettings').addEventListener('click', saveSettings);
+      $('btnSaveTemplate').addEventListener('click', saveAsTemplate);
+      $('btnUpdateApp').addEventListener('click', updateApp);
+      $('btnResetData').addEventListener('click', resetData);
+
+      // ダークモード即時反映
+      $('darkModeToggle').addEventListener('change', () => {
+        state.settings.darkMode = $('darkModeToggle').checked;
+        applyTheme();
+      });
+
+      // 撮影
+      $('btnCapture').addEventListener('click', () => $('fileInput').click());
+      $('fileInput').addEventListener('change', (e) => {
+        if (e.target.files[0]) {
+          handleCapture(e.target.files[0]);
+          e.target.value = '';
+        }
+      });
+      $('btnUndo').addEventListener('click', undoCapture);
+
+      // モーダル外クリックで閉じる
+      document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+          if (e.target === overlay) {
+            overlay.classList.remove('active');
+          }
+        });
+      });
+    }
+
+    // 起動
+    init();
+  </script>
+</body>
+</html>
