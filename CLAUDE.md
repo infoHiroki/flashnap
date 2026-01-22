@@ -28,7 +28,10 @@ flashnap/
 
 ## デプロイ
 
-- Cloudflare Pages
+```bash
+npx wrangler pages deploy . --project-name=flashnap
+```
+本番URL: https://flashnap.pages.dev
 
 ## 主要機能
 
@@ -49,7 +52,7 @@ flashnap/
 ### 撮影機能
 - 標準カメラ使用（`<input type="file" capture="environment">`）
 - 撮影時にリネームしてIndexedDB保存
-- カメラロールにも残る（二重保存）
+- Downloadsフォルダにも自動保存（二重保存）
 - 直前の撮影取り消し
 
 ### 連番設定

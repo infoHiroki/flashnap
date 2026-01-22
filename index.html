@@ -1539,9 +1539,20 @@
       // 写真保存
       await dbPut('photos', { id: record.id, dataUrl });
 
+      // Downloadsフォルダにも保存
+      downloadPhoto(dataUrl, filename);
+
       state.lastRecordId = record.id;
       renderCaptureSection();
       renderRecentList();
+    }
+
+    // Downloadsフォルダにも保存
+    function downloadPhoto(dataUrl, filename) {
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = filename;
+      a.click();
     }
 
     async function undoCapture() {
