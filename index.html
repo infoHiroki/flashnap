@@ -1879,6 +1879,48 @@
     // ============================================
     // 撮影機能
     // ============================================
+
+    // 4:3クロップ処理
+    function cropTo4by3(dataUrl) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const srcW = img.width;
+          const srcH = img.height;
+          const targetRatio = 4 / 3;
+          const srcRatio = srcW / srcH;
+          console.log(`元画像: ${srcW}x${srcH} (比率: ${srcRatio.toFixed(3)}, 4:3=${targetRatio.toFixed(3)})`);
+
+          let cropW, cropH, cropX, cropY;
+
+          if (srcRatio > targetRatio) {
+            // 横長すぎる → 左右をカット
+            cropH = srcH;
+            cropW = Math.round(srcH * targetRatio);
+            cropX = Math.round((srcW - cropW) / 2);
+            cropY = 0;
+          } else {
+            // 縦長すぎる → 上下をカット
+            cropW = srcW;
+            cropH = Math.round(srcW / targetRatio);
+            cropX = 0;
+            cropY = Math.round((srcH - cropH) / 2);
+          }
+
+          console.log(`クロップ後: ${cropW}x${cropH} (切り取り位置: x=${cropX}, y=${cropY})`);
+
+          const canvas = document.createElement('canvas');
+          canvas.width = cropW;
+          canvas.height = cropH;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+          resolve(canvas.toDataURL('image/jpeg', 0.92));
+        };
+        img.src = dataUrl;
+      });
+    }
+
     async function handleCapture(file) {
       const nodesMap = getNodesMap();
       const settings = getSurveySettings();
@@ -1895,11 +1937,14 @@
       }
 
       // 画像をDataURLに変換
-      const dataUrl = await new Promise((resolve) => {
+      const rawDataUrl = await new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = (e) => resolve(e.target.result);
         reader.readAsDataURL(file);
       });
+
+      // 4:3にクロップ
+      const dataUrl = await cropTo4by3(rawDataUrl);
 
       // 記録保存
       const record = {
