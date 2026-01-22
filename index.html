@@ -308,7 +308,7 @@
 
       #captureScreen {
         display: grid;
-        grid-template-columns: 150px 1fr 100px;
+        grid-template-columns: 180px minmax(0, 1fr) 100px;
         grid-template-rows: 1fr;
         gap: 8px;
         height: calc(100dvh - 44px);
@@ -328,7 +328,7 @@
       /* 左: ツリーサイドバー */
       .landscape-sidebar {
         grid-column: 1;
-        grid-row: 2;
+        grid-row: 1;
         display: flex;
         flex-direction: column;
         max-height: 100%;
@@ -347,8 +347,8 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 5px 6px;
-        font-size: 0.75rem;
+        padding: 6px 8px;
+        font-size: 0.8rem;
         cursor: pointer;
         border-left: 3px solid transparent;
         transition: background 0.15s;
@@ -370,7 +370,7 @@
       }
 
       .tree-node {
-        font-size: 0.7rem;
+        font-size: 0.75rem;
       }
 
       .tree-item-name {
@@ -381,7 +381,7 @@
       }
 
       .tree-item-count {
-        font-size: 0.65rem;
+        font-size: 0.7rem;
         color: var(--text-secondary);
         margin-left: 4px;
         flex-shrink: 0;
@@ -411,12 +411,14 @@
       /* 中央: コンテンツラッパー */
       .center-content {
         grid-column: 2;
-        grid-row: 2;
+        grid-row: 1;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         height: 100%;
+        overflow: hidden;  /* はみ出し防止 */
+        min-width: 0;      /* flex子要素の縮小許可 */
       }
 
       .capture-section {
@@ -451,7 +453,8 @@
         display: block;
         margin-top: 8px;
         width: 100%;
-        max-width: 280px;
+        max-width: 100%;   /* noneではなく100%に */
+        overflow: hidden;  /* はみ出し防止 */
       }
 
       .recent-section h3 {
@@ -461,7 +464,11 @@
       }
 
       .recent-list {
-        justify-content: center;
+        display: flex;     /* 明示的に追加 */
+        flex-wrap: nowrap; /* 折り返さない */
+        justify-content: flex-start;
+        overflow-x: auto;
+        gap: 8px;
       }
 
       .recent-item {
@@ -473,30 +480,30 @@
         font-size: 0.55rem;
       }
 
-      /* 横向き時の取り消しボタン（中央カラム下部） */
-      .btn-undo-landscape {
-        margin-top: 12px;
-        padding: 8px 16px;
-        font-size: 0.85rem;
-      }
-
       /* 右: カメラボタン */
       .capture-buttons-landscape {
         grid-column: 3;
-        grid-row: 2;
+        grid-row: 1;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding-right: 0;
-        align-self: center;
-        gap: 8px;
+        height: 100%;
+        position: relative;
+      }
+
+      /* 取り消しボタンは上部に絶対配置（カメラ位置に影響なし） */
+      .capture-buttons-landscape .btn-undo {
+        position: absolute;
+        top: 8px;
+        font-size: 0.75rem;
+        padding: 4px 8px;
       }
 
       .capture-buttons-landscape .btn-capture {
-        width: 70px;
-        height: 70px;
-        font-size: 1.8rem;
+        width: 80px;
+        height: 80px;
+        font-size: 2rem;
         border-radius: 50%;
         background: var(--accent);
         color: white;
@@ -923,14 +930,13 @@
           <div class="recent-list" id="recentList"></div>
         </div>
 
-        <!-- 横向き専用取り消しボタン（中央下部） -->
-        <button class="btn btn-secondary btn-undo btn-undo-landscape hidden" id="btnUndoLandscape">
-          ↩️ 取り消し
-        </button>
       </div>
 
       <!-- 横向き専用カメラボタン -->
       <div class="capture-buttons-landscape">
+        <button class="btn btn-secondary btn-undo hidden" id="btnUndoLandscape">
+          ↩️ 取り消し
+        </button>
         <button class="btn btn-primary btn-capture" id="btnCaptureLandscape">
           <span>📷</span>
         </button>
@@ -1478,10 +1484,11 @@
       // 調査一覧
       state.surveys.sort((a, b) => b.createdAt - a.createdAt).forEach(survey => {
         const isCurrentSurvey = survey.id === state.currentSurveyId;
+        const isRootSelected = isCurrentSurvey && state.currentNodeId === null;
         const photoCount = state.records.filter(r => r.surveyId === survey.id).length;
 
         html += `
-          <div class="tree-item tree-survey ${isCurrentSurvey ? 'selected' : ''}" data-survey-id="${survey.id}">
+          <div class="tree-item tree-survey ${isRootSelected ? 'selected' : ''} ${isCurrentSurvey ? 'current' : ''}" data-survey-id="${survey.id}">
             <span class="tree-item-name">📋 ${escapeHtml(survey.name)}</span>
             <span class="tree-item-count">${photoCount}</span>
           </div>
@@ -1490,16 +1497,6 @@
         // 現在の調査の場合、階層を表示
         if (isCurrentSurvey) {
           const surveyNodes = state.nodes.filter(n => n.surveyId === survey.id);
-
-          // ルート撮影オプション
-          const rootPhotoCount = state.records.filter(r => r.surveyId === survey.id && r.nodeId === null).length;
-          const isRootSelected = state.currentNodeId === null;
-          html += `
-            <div class="tree-item tree-node ${isRootSelected ? 'selected' : ''}" data-node-id="root" style="padding-left: 16px;">
-              <span class="tree-item-name">📁 ルート</span>
-              <span class="tree-item-count">${rootPhotoCount}</span>
-            </div>
-          `;
 
           // ツリー構造を再帰的に描画
           function renderNode(node, depth) {
@@ -1531,12 +1528,20 @@
 
       container.innerHTML = html || '<p style="color: var(--text-secondary); font-size: 0.8rem; padding: 8px;">調査がありません</p>';
 
-      // 調査クリックイベント
+      // 調査クリックイベント（タップでルート階層を選択）
       container.querySelectorAll('.tree-survey').forEach(item => {
         item.addEventListener('click', () => {
           const surveyId = item.dataset.surveyId;
           if (surveyId !== state.currentSurveyId) {
             selectSurvey(surveyId);
+          } else {
+            // 現在の調査をタップ → ルート階層を選択
+            state.currentNodeId = null;
+            state.lastRecordId = null;
+            renderBreadcrumbs();
+            renderNodeList();
+            renderLandscapeTree();
+            renderCaptureSection();
           }
         });
       });
@@ -1544,17 +1549,7 @@
       // 階層クリックイベント
       container.querySelectorAll('.tree-node').forEach(item => {
         item.addEventListener('click', () => {
-          const nodeId = item.dataset.nodeId;
-          if (nodeId === 'root') {
-            state.currentNodeId = null;
-            state.lastRecordId = null;
-            renderBreadcrumbs();
-            renderNodeList();
-            renderLandscapeTree();
-            renderCaptureSection();
-          } else {
-            selectNodeForCapture(nodeId);
-          }
+          selectNodeForCapture(item.dataset.nodeId);
         });
       });
     }
