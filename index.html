@@ -1083,6 +1083,12 @@
             <button class="btn btn-secondary hidden" id="btnSyncNow">同期</button>
           </div>
         </div>
+        <div class="setting-item hidden" id="syncQueueStatus">
+          <div>
+            <div class="setting-label">同期キュー</div>
+            <div class="setting-desc" id="syncQueueCount">0件待機中</div>
+          </div>
+        </div>
         <div class="setting-item">
           <div>
             <div class="setting-label">デバイスに保存</div>
@@ -1417,6 +1423,56 @@
         connectBtn.classList.remove('hidden');
         disconnectBtn.classList.add('hidden');
         syncBtn.classList.add('hidden');
+      }
+      updateSyncQueueUI();
+    }
+
+    async function updateSyncQueueUI() {
+      const queueStatusEl = $('syncQueueStatus');
+      const queueCountEl = $('syncQueueCount');
+      if (!state.settings.googleDrive.enabled) {
+        queueStatusEl.classList.add('hidden');
+        return;
+      }
+      const queue = await dbGetAll('syncQueue');
+      if (queue.length > 0) {
+        queueStatusEl.classList.remove('hidden');
+        const pending = queue.filter(q => q.status === 'pending' || q.status === 'retry').length;
+        const failed = queue.filter(q => q.status === 'failed').length;
+        const uploading = queue.filter(q => q.status === 'uploading').length;
+        let text = `${pending}件待機中`;
+        if (uploading > 0) text += ` / ${uploading}件アップロード中`;
+        if (failed > 0) text += ` / ${failed}件失敗`;
+        queueCountEl.textContent = text;
+      } else {
+        queueStatusEl.classList.add('hidden');
+      }
+    }
+
+    async function syncNowWithFeedback() {
+      const queue = await dbGetAll('syncQueue');
+      const pending = queue.filter(q => q.status === 'pending' || q.status === 'retry' || q.status === 'failed');
+      if (pending.length === 0) {
+        alert('同期するファイルがありません');
+        return;
+      }
+      // 失敗したものをリトライ状態に戻す
+      for (const item of queue.filter(q => q.status === 'failed')) {
+        item.status = 'retry';
+        item.retryCount = 0;
+        await dbPut('syncQueue', item);
+      }
+      alert(`${pending.length}件の同期を開始します`);
+      await processSyncQueue();
+      await updateSyncQueueUI();
+      const remaining = await dbGetAll('syncQueue');
+      if (remaining.length === 0) {
+        alert('同期完了！');
+      } else {
+        const failed = remaining.filter(q => q.status === 'failed').length;
+        if (failed > 0) {
+          alert(`${failed}件の同期に失敗しました`);
+        }
       }
     }
 
@@ -2727,7 +2783,7 @@
       // Google Drive
       $('btnConnectGoogleDrive').addEventListener('click', connectGoogleDrive);
       $('btnDisconnectGoogleDrive').addEventListener('click', disconnectGoogleDrive);
-      $('btnSyncNow').addEventListener('click', processSyncQueue);
+      $('btnSyncNow').addEventListener('click', syncNowWithFeedback);
 
       // デバイス保存即時反映
       $('downloadToDeviceToggle').addEventListener('change', async () => {
