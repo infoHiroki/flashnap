@@ -1088,6 +1088,7 @@
             <div class="setting-label">同期キュー</div>
             <div class="setting-desc" id="syncQueueCount">0件待機中</div>
           </div>
+          <button class="btn btn-secondary" id="btnClearSyncQueue">クリア</button>
         </div>
         <div class="setting-item">
           <div>
@@ -1469,11 +1470,19 @@
       if (remaining.length === 0) {
         alert('同期完了！');
       } else {
-        const failed = remaining.filter(q => q.status === 'failed').length;
-        if (failed > 0) {
-          alert(`${failed}件の同期に失敗しました`);
+        const failed = remaining.filter(q => q.status === 'failed');
+        if (failed.length > 0) {
+          const errorMsg = failed[0].lastError || '不明なエラー';
+          alert(`${failed.length}件の同期に失敗\n\nエラー: ${errorMsg}`);
         }
       }
+    }
+
+    async function clearSyncQueue() {
+      if (!confirm('同期キューをすべてクリアしますか？')) return;
+      await dbClear('syncQueue');
+      await updateSyncQueueUI();
+      alert('同期キューをクリアしました');
     }
 
     // ============================================
@@ -1648,6 +1657,7 @@
           } catch (error) {
             console.error(`Upload failed: ${item.filename}`, error);
             item.retryCount++;
+            item.lastError = error.message;
             if (item.retryCount >= 3) {
               item.status = 'failed';
             } else {
@@ -2788,6 +2798,7 @@
       $('btnConnectGoogleDrive').addEventListener('click', connectGoogleDrive);
       $('btnDisconnectGoogleDrive').addEventListener('click', disconnectGoogleDrive);
       $('btnSyncNow').addEventListener('click', syncNowWithFeedback);
+      $('btnClearSyncQueue').addEventListener('click', clearSyncQueue);
 
       // デバイス保存即時反映
       $('downloadToDeviceToggle').addEventListener('change', async () => {
