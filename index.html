@@ -1293,7 +1293,7 @@
           tokenExpiry: null,
           folderId: null
         },
-        downloadToDevice: true
+        downloadToDevice: false
       }
     };
 
@@ -2407,11 +2407,40 @@
     }
 
     // Downloadsフォルダにも保存
-    function downloadPhoto(dataUrl, filename) {
+    async function downloadPhoto(dataUrl, filename) {
+      // Data URLをBlobに変換
+      const arr = dataUrl.split(',');
+      const mime = arr[0].match(/:(.*?);/)[1];
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      const blob = new Blob([u8arr], { type: mime });
+
+      // iOSの場合はWeb Share APIを使用（<a download>が動作しないため）
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIOS && navigator.canShare) {
+        const file = new File([blob], filename, { type: mime });
+        if (navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({ files: [file] });
+            return;
+          } catch (e) {
+            // ユーザーがキャンセルした場合は何もしない
+            if (e.name === 'AbortError') return;
+          }
+        }
+      }
+
+      // 通常のダウンロード（非iOS）
+      const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = dataUrl;
+      a.href = blobUrl;
       a.download = filename;
       a.click();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
     }
 
     async function undoCapture() {
