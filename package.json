@@ -1,0 +1,29 @@
+{
+  "name": "flashnap",
+  "version": "1.0.0",
+  "main": "sw.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "serve": "serve -l 8080"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/infoHiroki/flashnap.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/infoHiroki/flashnap/issues"
+  },
+  "homepage": "https://github.com/infoHiroki/flashnap#readme",
+  "description": "",
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "serve": "^14.2.5"
+  }
+}

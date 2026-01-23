@@ -14,13 +14,24 @@
 
 ```
 flashnap/
-├── index.html      # メインアプリ（HTML/CSS/JS全部入り）
-├── manifest.json   # PWAマニフェスト
-├── sw.js           # Service Worker
+├── index.html           # メインアプリ（HTML/CSS/JS全部入り）
+├── manifest.json        # PWAマニフェスト
+├── sw.js                # Service Worker
 ├── lib/
 │   └── jszip.min.js
+├── tests/
+│   └── app.spec.js      # E2Eテスト（Playwright）
+├── playwright.config.js # テスト設定
+├── package.json
 ├── CLAUDE.md
 └── REQUIREMENTS.md
+```
+
+## テスト
+
+```bash
+npm test        # テスト実行
+npm run test:ui # UIモードで実行
 ```
 
 ## デプロイ
