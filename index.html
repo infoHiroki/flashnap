@@ -1562,37 +1562,41 @@
       const flashnapFolderId = await ensureFlashnapFolder();
       const surveyFolderId = await ensureSurveyFolder(surveyName, flashnapFolderId);
 
-      // Base64をBlobに変換
+      // Base64データを取得
       const base64 = photo.dataUrl.split(',')[1];
-      const byteCharacters = atob(base64);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: 'image/jpeg' });
 
-      // Multipartアップロード
+      // multipart/related形式でリクエストを構築
+      const boundary = 'flashnap_boundary_' + Date.now();
       const metadata = {
         name: filename,
         parents: [surveyFolderId]
       };
 
-      const form = new FormData();
-      form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-      form.append('file', blob);
+      const body =
+        `--${boundary}\r\n` +
+        `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+        `${JSON.stringify(metadata)}\r\n` +
+        `--${boundary}\r\n` +
+        `Content-Type: image/jpeg\r\n` +
+        `Content-Transfer-Encoding: base64\r\n\r\n` +
+        `${base64}\r\n` +
+        `--${boundary}--`;
 
       const uploadRes = await fetch(
         'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
         {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` },
-          body: form
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': `multipart/related; boundary=${boundary}`
+          },
+          body: body
         }
       );
 
       if (!uploadRes.ok) {
-        throw new Error(`Upload failed: ${uploadRes.status}`);
+        const errorText = await uploadRes.text();
+        throw new Error(`Upload failed: ${uploadRes.status} - ${errorText}`);
       }
 
       return await uploadRes.json();
