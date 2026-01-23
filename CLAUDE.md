@@ -14,17 +14,19 @@
 
 ```
 flashnap/
-├── index.html           # メインアプリ（HTML/CSS/JS全部入り）
-├── manifest.json        # PWAマニフェスト
-├── sw.js                # Service Worker
+├── docs/
+│   └── REQUIREMENTS.md  # 詳細仕様書
 ├── lib/
 │   └── jszip.min.js
 ├── tests/
 │   └── app.spec.js      # E2Eテスト（Playwright）
+├── index.html           # メインアプリ（HTML/CSS/JS全部入り）
+├── manifest.json        # PWAマニフェスト
+├── sw.js                # Service Worker
 ├── playwright.config.js # テスト設定
 ├── package.json
-├── CLAUDE.md
-└── REQUIREMENTS.md
+├── README.md            # GitHub向け
+└── CLAUDE.md            # AI開発用
 ```
 
 ## テスト
