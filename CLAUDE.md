@@ -8,6 +8,7 @@
 - Vanilla JS（フレームワークなし）
 - IndexedDB（データ保存）
 - JSZip（バンドル、オフライン対応）
+- Google Drive API（クラウド同期）
 
 ## ファイル構成
 
@@ -21,10 +22,6 @@ flashnap/
 ├── CLAUDE.md
 └── REQUIREMENTS.md
 ```
-
-## デザイン
-
-- ダークモード切り替え対応
 
 ## デプロイ
 
@@ -52,8 +49,15 @@ npx wrangler pages deploy . --project-name=flashnap
 ### 撮影機能
 - 標準カメラ使用（`<input type="file" capture="environment">`）
 - 撮影時にリネームしてIndexedDB保存
-- Downloadsフォルダにも自動保存（二重保存）
+- 撮影時に4:3自動クロップ
 - 直前の撮影取り消し
+
+### Google Drive連携
+- 撮影時にGoogle Driveへ自動アップロード
+- フォルダ構成: `Flashnap/調査名/ファイル名.jpg`
+- オフライン対応（同期キューに蓄積、オンライン復帰で自動処理）
+- 最大3回リトライ
+- デバイス保存（Downloadsフォルダ）はON/OFF可能
 
 ### 連番設定
 - デフォルト設定（アプリ全体）
@@ -71,8 +75,12 @@ npx wrangler pages deploy . --project-name=flashnap
 - 個別削除可能
 
 ### 設定
+- Google Drive接続/解除
+- 今すぐ同期（同期キュー手動処理）
+- デバイスに保存ON/OFF
 - アプリを更新（SW/キャッシュ削除）
 - データをリセット（写真・階層を全削除）
+- ダークモード切り替え
 
 ## 前身
 
