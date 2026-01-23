@@ -31,7 +31,18 @@ self.addEventListener('activate', (event) => {
 });
 
 // フェッチ時はキャッシュ優先、なければネットワーク
+// Google APIはキャッシュしない
 self.addEventListener('fetch', (event) => {
+  const url = event.request.url;
+
+  // Google APIとaccounts.google.comはキャッシュをバイパス
+  if (url.includes('googleapis.com') ||
+      url.includes('accounts.google.com') ||
+      url.includes('apis.google.com')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((response) => {
       return response || fetch(event.request);

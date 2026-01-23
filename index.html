@@ -857,6 +857,9 @@
   </style>
 </head>
 <body>
+  <!-- Google APIs for Drive integration -->
+  <script src="https://apis.google.com/js/api.js" async defer></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- ヘッダー -->
   <header class="header">
     <div style="display: flex; align-items: center; gap: 8px;">
@@ -1067,6 +1070,30 @@
           </label>
         </div>
 
+        <!-- クラウド同期 -->
+        <h3 class="mt-16 mb-16">クラウド同期</h3>
+        <div class="setting-item">
+          <div>
+            <div class="setting-label">Google Drive</div>
+            <div class="setting-desc" id="googleDriveStatus">未接続</div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-primary" id="btnConnectGoogleDrive">接続</button>
+            <button class="btn btn-secondary hidden" id="btnDisconnectGoogleDrive">解除</button>
+            <button class="btn btn-secondary hidden" id="btnSyncNow">同期</button>
+          </div>
+        </div>
+        <div class="setting-item">
+          <div>
+            <div class="setting-label">デバイスに保存</div>
+            <div class="setting-desc">撮影時にDownloadsフォルダにも保存</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="downloadToDeviceToggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
         <!-- デフォルト連番設定 -->
         <h3 class="mt-16 mb-16">デフォルト連番設定</h3>
         <div class="form-row">
@@ -1133,7 +1160,7 @@
     // IndexedDB
     // ============================================
     const DB_NAME = 'flashnap';
-    const DB_VERSION = 1;
+    const DB_VERSION = 2;
     let db = null;
 
     async function initDB() {
@@ -1182,6 +1209,12 @@
           // 設定
           if (!database.objectStoreNames.contains('settings')) {
             database.createObjectStore('settings', { keyPath: 'key' });
+          }
+
+          // 同期キュー (v2で追加)
+          if (!database.objectStoreNames.contains('syncQueue')) {
+            const syncQueue = database.createObjectStore('syncQueue', { keyPath: 'id' });
+            syncQueue.createIndex('status', 'status');
           }
         };
       });
@@ -1246,9 +1279,334 @@
         startNum: 1,
         zeroPad: true,
         prefix: '',
-        separator: '-'
+        separator: '-',
+        googleDrive: {
+          enabled: false,
+          accessToken: null,
+          tokenExpiry: null,
+          folderId: null
+        },
+        downloadToDevice: true
       }
     };
+
+    // ============================================
+    // Google Drive 設定
+    // ============================================
+    const GOOGLE_CLIENT_ID = '347827958454-f2uo1m6fehbcdeq90mkf9uajb0j47cvf.apps.googleusercontent.com';
+    const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
+    let gapiInited = false;
+    let gisInited = false;
+    let tokenClient = null;
+
+    // ============================================
+    // Google Drive 認証
+    // ============================================
+    function initGapi() {
+      return new Promise((resolve) => {
+        if (typeof gapi === 'undefined') {
+          console.log('GAPI not loaded yet');
+          resolve(false);
+          return;
+        }
+        gapi.load('client', async () => {
+          await gapi.client.init({});
+          gapiInited = true;
+          console.log('GAPI initialized');
+          resolve(true);
+        });
+      });
+    }
+
+    function initGis() {
+      return new Promise((resolve) => {
+        if (typeof google === 'undefined' || !google.accounts) {
+          console.log('GIS not loaded yet');
+          resolve(false);
+          return;
+        }
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: GOOGLE_CLIENT_ID,
+          scope: GOOGLE_SCOPES,
+          callback: (response) => {
+            if (response.error) {
+              console.error('Token error:', response);
+              return;
+            }
+            // トークン取得成功
+            state.settings.googleDrive.accessToken = response.access_token;
+            state.settings.googleDrive.tokenExpiry = Date.now() + (response.expires_in * 1000);
+            state.settings.googleDrive.enabled = true;
+            saveGoogleDriveSettings();
+            updateGoogleDriveUI();
+            // 同期キュー処理開始
+            processSyncQueue();
+          }
+        });
+        gisInited = true;
+        console.log('GIS initialized');
+        resolve(true);
+      });
+    }
+
+    async function connectGoogleDrive() {
+      if (!gapiInited || !gisInited) {
+        await initGapi();
+        await initGis();
+      }
+      if (!gapiInited || !gisInited) {
+        alert('Google APIの読み込みに失敗しました。ページを再読み込みしてください。');
+        return;
+      }
+      if (GOOGLE_CLIENT_ID === 'YOUR_CLIENT_ID.apps.googleusercontent.com') {
+        alert('Google Drive連携を使用するには、GOOGLE_CLIENT_IDを設定してください。');
+        return;
+      }
+      tokenClient.requestAccessToken({ prompt: 'consent' });
+    }
+
+    async function disconnectGoogleDrive() {
+      if (!confirm('Google Driveとの接続を解除しますか？')) return;
+
+      if (state.settings.googleDrive.accessToken) {
+        google.accounts.oauth2.revoke(state.settings.googleDrive.accessToken);
+      }
+      state.settings.googleDrive = {
+        enabled: false,
+        accessToken: null,
+        tokenExpiry: null,
+        folderId: null
+      };
+      await saveGoogleDriveSettings();
+      updateGoogleDriveUI();
+    }
+
+    async function refreshTokenIfNeeded() {
+      if (!state.settings.googleDrive.enabled) return false;
+      // トークン有効期限の5分前にリフレッシュ
+      if (state.settings.googleDrive.tokenExpiry &&
+          Date.now() > state.settings.googleDrive.tokenExpiry - 300000) {
+        return new Promise((resolve) => {
+          tokenClient.requestAccessToken({ prompt: '' });
+          // callbackで処理されるので、少し待つ
+          setTimeout(() => resolve(true), 1000);
+        });
+      }
+      return true;
+    }
+
+    async function saveGoogleDriveSettings() {
+      await dbPut('settings', { key: 'googleDrive', ...state.settings.googleDrive });
+    }
+
+    function updateGoogleDriveUI() {
+      const statusEl = $('googleDriveStatus');
+      const connectBtn = $('btnConnectGoogleDrive');
+      const disconnectBtn = $('btnDisconnectGoogleDrive');
+      const syncBtn = $('btnSyncNow');
+
+      if (state.settings.googleDrive.enabled) {
+        statusEl.textContent = '接続中';
+        statusEl.style.color = 'var(--success)';
+        connectBtn.classList.add('hidden');
+        disconnectBtn.classList.remove('hidden');
+        syncBtn.classList.remove('hidden');
+      } else {
+        statusEl.textContent = '未接続';
+        statusEl.style.color = 'var(--text-secondary)';
+        connectBtn.classList.remove('hidden');
+        disconnectBtn.classList.add('hidden');
+        syncBtn.classList.add('hidden');
+      }
+    }
+
+    // ============================================
+    // Google Drive アップロード
+    // ============================================
+    async function ensureFlashnapFolder() {
+      if (state.settings.googleDrive.folderId) {
+        return state.settings.googleDrive.folderId;
+      }
+
+      await refreshTokenIfNeeded();
+      const token = state.settings.googleDrive.accessToken;
+
+      // Flashnapフォルダを検索
+      const searchRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=name='Flashnap' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      const searchData = await searchRes.json();
+
+      if (searchData.files && searchData.files.length > 0) {
+        state.settings.googleDrive.folderId = searchData.files[0].id;
+        await saveGoogleDriveSettings();
+        return state.settings.googleDrive.folderId;
+      }
+
+      // フォルダ作成
+      const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: 'Flashnap',
+          mimeType: 'application/vnd.google-apps.folder'
+        })
+      });
+      const folder = await createRes.json();
+      state.settings.googleDrive.folderId = folder.id;
+      await saveGoogleDriveSettings();
+      return folder.id;
+    }
+
+    async function ensureSurveyFolder(surveyName, parentFolderId) {
+      await refreshTokenIfNeeded();
+      const token = state.settings.googleDrive.accessToken;
+
+      // 調査フォルダを検索
+      const searchRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=name='${surveyName.replace(/'/g, "\\'")}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      const searchData = await searchRes.json();
+
+      if (searchData.files && searchData.files.length > 0) {
+        return searchData.files[0].id;
+      }
+
+      // フォルダ作成
+      const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: surveyName,
+          mimeType: 'application/vnd.google-apps.folder',
+          parents: [parentFolderId]
+        })
+      });
+      const folder = await createRes.json();
+      return folder.id;
+    }
+
+    async function uploadToDrive(recordId, filename, surveyName) {
+      await refreshTokenIfNeeded();
+      const token = state.settings.googleDrive.accessToken;
+
+      // 写真データ取得
+      const photo = await dbGet('photos', recordId);
+      if (!photo) throw new Error('Photo not found');
+
+      // フォルダ確保
+      const flashnapFolderId = await ensureFlashnapFolder();
+      const surveyFolderId = await ensureSurveyFolder(surveyName, flashnapFolderId);
+
+      // Base64をBlobに変換
+      const base64 = photo.dataUrl.split(',')[1];
+      const byteCharacters = atob(base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'image/jpeg' });
+
+      // Multipartアップロード
+      const metadata = {
+        name: filename,
+        parents: [surveyFolderId]
+      };
+
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+      form.append('file', blob);
+
+      const uploadRes = await fetch(
+        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+        {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: form
+        }
+      );
+
+      if (!uploadRes.ok) {
+        throw new Error(`Upload failed: ${uploadRes.status}`);
+      }
+
+      return await uploadRes.json();
+    }
+
+    async function addToSyncQueue(recordId, filename, surveyName) {
+      const queueItem = {
+        id: generateId(),
+        recordId,
+        filename,
+        surveyName,
+        status: 'pending',
+        retryCount: 0,
+        createdAt: Date.now()
+      };
+      await dbPut('syncQueue', queueItem);
+
+      // オンラインなら即座に処理
+      if (navigator.onLine && state.settings.googleDrive.enabled) {
+        processSyncQueue();
+      }
+    }
+
+    let isSyncing = false;
+
+    async function processSyncQueue() {
+      if (isSyncing) return;
+      if (!state.settings.googleDrive.enabled) return;
+      if (!navigator.onLine) return;
+
+      isSyncing = true;
+
+      try {
+        const queue = await dbGetAll('syncQueue');
+        const pending = queue.filter(item => item.status === 'pending' || item.status === 'retry');
+
+        for (const item of pending) {
+          try {
+            // ステータス更新
+            item.status = 'uploading';
+            await dbPut('syncQueue', item);
+
+            // アップロード
+            await uploadToDrive(item.recordId, item.filename, item.surveyName);
+
+            // 成功したらキューから削除
+            await dbDelete('syncQueue', item.id);
+            console.log(`Uploaded: ${item.filename}`);
+          } catch (error) {
+            console.error(`Upload failed: ${item.filename}`, error);
+            item.retryCount++;
+            if (item.retryCount >= 3) {
+              item.status = 'failed';
+            } else {
+              item.status = 'retry';
+            }
+            await dbPut('syncQueue', item);
+          }
+        }
+      } finally {
+        isSyncing = false;
+      }
+    }
+
+    // オンライン復帰時に同期
+    window.addEventListener('online', () => {
+      if (state.settings.googleDrive.enabled) {
+        processSyncQueue();
+      }
+    });
 
     // ============================================
     // ヘルパー関数
@@ -1961,8 +2319,16 @@
       // 写真保存
       await dbPut('photos', { id: record.id, dataUrl });
 
-      // Downloadsフォルダにも保存
-      downloadPhoto(dataUrl, filename);
+      // Google Driveにアップロード（有効な場合）
+      if (state.settings.googleDrive.enabled) {
+        const surveyName = survey?.name || '調査';
+        await addToSyncQueue(record.id, filename, surveyName);
+      }
+
+      // デバイスにダウンロード（有効な場合）
+      if (state.settings.downloadToDevice) {
+        downloadPhoto(dataUrl, filename);
+      }
 
       state.lastRecordId = record.id;
       renderLandscapeTree();
@@ -2173,24 +2539,30 @@
       const s = state.settings;
 
       $('darkModeToggle').checked = s.darkMode;
+      $('downloadToDeviceToggle').checked = s.downloadToDevice;
       $('defaultDigits').value = s.digits;
       $('defaultStartNum').value = s.startNum;
       $('defaultPrefix').value = s.prefix;
       $('defaultSeparator').value = s.separator;
       $('defaultZeroPad').checked = s.zeroPad;
 
+      updateGoogleDriveUI();
       renderTemplateList();
       modal.classList.add('active');
     }
 
     async function saveSettings() {
+      const googleDrive = state.settings.googleDrive; // 保持
+      const downloadToDevice = state.settings.downloadToDevice; // 保持
       state.settings = {
         darkMode: $('darkModeToggle').checked,
         digits: parseInt($('defaultDigits').value),
         startNum: parseInt($('defaultStartNum').value),
         prefix: $('defaultPrefix').value,
         separator: $('defaultSeparator').value,
-        zeroPad: $('defaultZeroPad').checked
+        zeroPad: $('defaultZeroPad').checked,
+        googleDrive,
+        downloadToDevice
       };
 
       await dbPut('settings', { key: 'app', ...state.settings });
@@ -2261,6 +2633,18 @@
         state.settings = { ...state.settings, ...savedSettings };
       }
 
+      // Google Drive設定を読み込み
+      const savedGoogleDrive = await dbGet('settings', 'googleDrive');
+      if (savedGoogleDrive) {
+        state.settings.googleDrive = { ...state.settings.googleDrive, ...savedGoogleDrive };
+      }
+
+      // downloadToDevice設定を読み込み
+      const savedDownload = await dbGet('settings', 'downloadToDevice');
+      if (savedDownload) {
+        state.settings.downloadToDevice = savedDownload.value;
+      }
+
       applyTheme();
       showScreen('survey');
       renderSurveyList();
@@ -2269,6 +2653,16 @@
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js');
       }
+
+      // Google API初期化（遅延）
+      setTimeout(async () => {
+        await initGapi();
+        await initGis();
+        // 接続済みの場合は同期キューを処理
+        if (state.settings.googleDrive.enabled && navigator.onLine) {
+          processSyncQueue();
+        }
+      }, 1000);
 
       // イベントリスナー設定
       setupEventListeners();
@@ -2328,6 +2722,17 @@
       $('darkModeToggle').addEventListener('change', () => {
         state.settings.darkMode = $('darkModeToggle').checked;
         applyTheme();
+      });
+
+      // Google Drive
+      $('btnConnectGoogleDrive').addEventListener('click', connectGoogleDrive);
+      $('btnDisconnectGoogleDrive').addEventListener('click', disconnectGoogleDrive);
+      $('btnSyncNow').addEventListener('click', processSyncQueue);
+
+      // デバイス保存即時反映
+      $('downloadToDeviceToggle').addEventListener('change', async () => {
+        state.settings.downloadToDevice = $('downloadToDeviceToggle').checked;
+        await dbPut('settings', { key: 'downloadToDevice', value: state.settings.downloadToDevice });
       });
 
       // 撮影
