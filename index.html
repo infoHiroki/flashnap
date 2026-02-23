@@ -854,6 +854,68 @@
     .mb-16 {
       margin-bottom: 16px;
     }
+
+    /* メタデータ入力セクション */
+    .metadata-section {
+      padding: 0 16px 16px;
+    }
+
+    .metadata-row {
+      margin-bottom: 8px;
+    }
+
+    .metadata-row select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      appearance: auto;
+    }
+
+    .meta-tabs {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .meta-tabs button {
+      flex: 1;
+      min-width: 60px;
+      padding: 8px 4px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .meta-tabs button.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    @media (orientation: landscape) and (max-height: 500px) {
+      .metadata-section {
+        padding: 0 8px 8px;
+      }
+      .metadata-row {
+        margin-bottom: 4px;
+      }
+      .metadata-row select {
+        padding: 6px 8px;
+        font-size: 0.8rem;
+      }
+      .meta-tabs button {
+        padding: 4px 2px;
+        font-size: 0.75rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -916,6 +978,20 @@
           <div class="current-number" id="currentNumber">001</div>
           <div class="current-path" id="currentPath">撮影場所を選択してください</div>
           <div class="current-count" id="currentCount">0枚撮影済み</div>
+          <div id="metadataSection" class="metadata-section hidden">
+            <div class="metadata-row">
+              <div class="meta-tabs" id="categoryTabs"></div>
+            </div>
+            <div class="metadata-row">
+              <select id="metaPart"><option value="">部位</option></select>
+            </div>
+            <div class="metadata-row">
+              <select id="metaMaterial"><option value="">材質</option></select>
+            </div>
+            <div class="metadata-row">
+              <select id="metaNote"><option value="">特記</option></select>
+            </div>
+          </div>
           <div class="capture-buttons">
             <input type="file" id="fileInput" accept="image/*" capture="environment">
             <button class="btn btn-primary btn-capture" id="btnCapture">
@@ -958,6 +1034,13 @@
         <div class="form-group">
           <label for="surveyName">調査名</label>
           <input type="text" id="surveyName" placeholder="例: 本館点検">
+        </div>
+        <div class="form-group">
+          <label for="surveyType">調査種別</label>
+          <select id="surveyType">
+            <option value="">標準（写真のみ）</option>
+            <option value="kenzen">健全度調査票</option>
+          </select>
         </div>
         <div class="form-group">
           <label for="templateSelect">テンプレート</label>
@@ -1164,6 +1247,16 @@
 
   <script>
     // ============================================
+    // 調査種別マスターデータ
+    // ============================================
+    const SURVEY_TYPES = {
+      kenzen: {
+        label: '健全度調査票',
+        master: {"parts":{"外部":["基礎、土壌","外構","床","構造材","壁･柱","その他","外壁","庇、軒天","梁","柱","梁･柱","軒天･梁","外装仕上げ材","鉄骨部材","建具","窓サッシ","庁、軒天","排水設備"],"屋根":["防水層","屋根","軒","その他","排水設備"],"内部":["天井","天井･梁","壁","床","建具","その他","梁","柱","梁･柱","壁･柱","梁･壁","窓サッシ"],"設備":["便器、洗面器等","給排水","その他","照明器具","電気設備","湯沸器、コンロ","換気設備","空調設備"]},"materials":[{"cat":"外部","parts":["基礎、土壌"],"val":"土砂"},{"cat":"外部","parts":["基礎、土壌"],"val":"砂利"},{"cat":"外部","parts":["基礎、土壌"],"val":"ｱｽﾌｧﾙﾄ"},{"cat":"外部","parts":["基礎、土壌","外構"],"val":"ｲﾝﾀｰﾛｯｷﾝｸﾞ"},{"cat":"外部","parts":["基礎、土壌","床","外構","構造材","壁･柱","その他"],"val":"ｺﾝｸﾘｰﾄ"},{"cat":"外部","parts":["基礎、土壌","外壁","庇、軒天","梁","柱","床","外構","構造材","壁･柱","梁･柱","軒天･梁","その他"],"val":"ｺﾝｸﾘｰﾄ/塗装"},{"cat":"外部","parts":["基礎、土壌","外壁","庇、軒天","梁","柱","床","外構","構造材","壁･柱","梁･柱","軒天･梁","その他"],"val":"ｺﾝｸﾘｰﾄ/ﾓﾙﾀﾙ"},{"cat":"外部","parts":["外壁"],"val":"ALCﾊﾟﾈﾙ"},{"cat":"外部","parts":["外壁"],"val":"漆喰"},{"cat":"外部","parts":["外壁"],"val":"吹付ﾀｲﾙ"},{"cat":"外部","parts":["外壁","その他"],"val":"ｽﾚｰﾄ"},{"cat":"外部","parts":["外壁","外構"],"val":"ﾚﾝｶﾞ"},{"cat":"外部","parts":["外壁","庇、軒天"],"val":"ｾﾒﾝﾄ板/塗装"},{"cat":"外部","parts":["外壁","庇、軒天","その他"],"val":"木板"},{"cat":"外部","parts":["外壁","庇、軒天","その他"],"val":"木板/塗装"},{"cat":"外部","parts":["外壁","庇、軒天","その他"],"val":"金属ﾊﾟﾈﾙ"},{"cat":"外部","parts":["外壁","床","外構"],"val":"石材/ﾓﾙﾀﾙ"},{"cat":"外部","parts":["外壁","床","外構"],"val":"ｺﾝｸﾘｰﾄ洗い出し仕上げ"},{"cat":"外部","parts":["外壁","庇、軒天","壁･柱","軒天･梁"],"val":"ﾘｼﾝ吹付"},{"cat":"外部","parts":["外壁","庇、軒天","柱","その他"],"val":"木材/塗装"},{"cat":"外部","parts":["外壁","外装仕上げ材","庇、軒天","床","外構"],"val":"ﾀｲﾙ"},{"cat":"外部","parts":["外壁","庇、軒天","壁･柱","軒天･梁","その他"],"val":"ﾓﾙﾀﾙ/塗装"},{"cat":"外部","parts":["外壁","庇、軒天","外構","鉄骨部材","その他"],"val":"鋼板"},{"cat":"外部","parts":["外壁","庇、軒天","外構","鉄骨部材","その他"],"val":"鋼板/塗装"},{"cat":"外部","parts":["外壁","庇、軒天","床","外構","その他"],"val":"石材"},{"cat":"外部","parts":["外壁","庇、軒天","床","外構","その他"],"val":"ｳﾚﾀﾝ塗膜防水"},{"cat":"外部","parts":["外壁","庇、軒天","床","外構","その他"],"val":"FRP樹脂"},{"cat":"外部","parts":["外壁","庇、軒天","建具","外構","鉄骨部材","その他"],"val":"金属部材"},{"cat":"外部","parts":["外壁","庇、軒天","建具","窓サッシ","外構","その他"],"val":"ｱﾙﾐ"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ｺﾝｸﾘｰﾄﾌﾞﾛｯｸ"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ｻｲﾃﾞｨﾝｸﾞ"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ｼｰﾘﾝｸﾞ"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","構造材","壁･柱","梁･柱","軒天･梁"],"val":"ｺﾝｸﾘｰﾄ打ち放し"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","壁･柱","梁･柱","軒天･梁","その他"],"val":"ｱﾙﾐﾊﾟﾈﾙ"},{"cat":"外部","parts":["外壁","庁、軒天","梁","柱","床","外構","壁･柱","梁･柱","軒天･梁","その他"],"val":"ﾓﾙﾀﾙ"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","構造材","壁･柱","梁･柱","軒天･梁","その他"],"val":"ｺﾝｸﾘｰﾄ/ﾀｲﾙ"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","構造材","壁･柱","梁･柱","軒天･梁","その他"],"val":"木材"},{"cat":"外部","parts":["庇、軒天","その他"],"val":"ﾎﾟﾘｶ波板"},{"cat":"外部","parts":["建具","窓サッシ"],"val":"木材/ｶﾞﾗｽ"},{"cat":"外部","parts":["建具","窓サッシ"],"val":"ｽﾃﾝﾚｽ/ｶﾞﾗｽ"},{"cat":"外部","parts":["建具","排水設備","外構","その他"],"val":"鋼製"},{"cat":"外部","parts":["建具","外構","その他"],"val":"ｽﾃﾝﾚｽ"},{"cat":"外部","parts":["建具","窓サッシ","外構","その他"],"val":"木製"},{"cat":"外部","parts":["窓サッシ"],"val":"ｱﾙﾐ/ｶﾞﾗｽ"},{"cat":"外部","parts":["窓サッシ","外構","その他"],"val":"ｶﾞﾗｽ"},{"cat":"外部","parts":["床","外構"],"val":"防滑性ﾋﾞﾆﾙ床ｼｰﾄ"},{"cat":"外部","parts":["床","外構","その他"],"val":"人工木材"},{"cat":"外部","parts":["排水設備","外構","その他"],"val":"塩ﾋﾞ"},{"cat":"屋根","parts":["防水層"],"val":"FRP樹脂"},{"cat":"屋根","parts":["防水層"],"val":"ｱｽﾌｧﾙﾄ防水"},{"cat":"屋根","parts":["防水層"],"val":"ｳﾚﾀﾝ塗膜防水"},{"cat":"屋根","parts":["防水層"],"val":"ｼｰﾄ防水"},{"cat":"屋根","parts":["防水層"],"val":"押さえｺﾝｸﾘｰﾄ"},{"cat":"屋根","parts":["防水層"],"val":"防滑性ﾋﾞﾆﾙ床ｼｰﾄ"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"ｱｽﾌｧﾙﾄｼﾝｸﾞﾙ"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"瓦"},{"cat":"屋根","parts":["屋根","防水層"],"val":"ｺﾝｸﾘｰﾄ/塗膜"},{"cat":"屋根","parts":["屋根","その他"],"val":"ｱﾙﾐ/ｶﾞﾗｽ"},{"cat":"屋根","parts":["屋根","その他"],"val":"ｺﾝｸﾘｰﾄ/金属笠木"},{"cat":"屋根","parts":["屋根","その他"],"val":"ﾊﾟﾈﾙ"},{"cat":"屋根","parts":["屋根","その他"],"val":"ﾎﾟﾘｶ"},{"cat":"屋根","parts":["屋根","その他"],"val":"ﾎﾟﾘｶ波板"},{"cat":"屋根","parts":["軒"],"val":"ｱﾙﾐｽﾊﾟﾝﾄﾞﾚﾙ"},{"cat":"屋根","parts":["屋根","軒"],"val":"木板/塗装"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"ｽﾚｰﾄ波板"},{"cat":"屋根","parts":["防水層","屋根","その他"],"val":"保護砂利"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"ｺﾝｸﾘｰﾄ/ﾓﾙﾀﾙ"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"ｺﾝｸﾘｰﾄ/塗装"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"ｼｰﾘﾝｸﾞ"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"ﾓﾙﾀﾙ/塗装"},{"cat":"屋根","parts":["屋根","防水層","軒","その他"],"val":"金属折板"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"金属板"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"鋼板/塗装"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"鉄骨"},{"cat":"屋根","parts":["屋根","排水設備","その他"],"val":"鋼製"},{"cat":"屋根","parts":["軒","その他"],"val":"ｹｲｶﾙ板"},{"cat":"屋根","parts":["軒","その他"],"val":"ｹｲｶﾙ板/塗装"},{"cat":"屋根","parts":["排水設備","その他"],"val":"塩ﾋﾞ"},{"cat":"屋根","parts":["排水設備","その他"],"val":"樹脂"},{"cat":"屋根","parts":["その他"],"val":"ｱｸﾘﾙ/ｽﾃﾝﾚｽ"},{"cat":"屋根","parts":["その他"],"val":"鋼製枠/ｶﾞﾗｽ"},{"cat":"屋根","parts":["屋根","軒","排水設備","その他"],"val":"ｽﾃﾝﾚｽ"},{"cat":"屋根","parts":["屋根","軒","排水設備","その他"],"val":"銅板"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"ｱﾙﾐ"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"ﾓﾙﾀﾙ"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"木材"},{"cat":"屋根","parts":["屋根","軒","防水層","その他"],"val":"ｺﾝｸﾘｰﾄ"},{"cat":"屋根","parts":["屋根","防水層","その他"],"val":"ﾀｲﾙ"},{"cat":"内部","parts":["天井","天井･梁"],"val":"石膏ﾎﾞｰﾄﾞ(ｼﾞﾌﾟﾄｰﾝ)"},{"cat":"内部","parts":["天井","天井･梁"],"val":"石膏ﾎﾞｰﾄﾞ(ｿｰﾗﾄﾝ)"},{"cat":"内部","parts":["天井","壁","床"],"val":"ﾓﾙﾀﾙ"},{"cat":"内部","parts":["天井","壁","天井･梁"],"val":"ｾﾒﾝﾄ板"},{"cat":"内部","parts":["天井","壁","天井･梁"],"val":"ｾﾒﾝﾄ板/塗装"},{"cat":"内部","parts":["天井","壁","天井･梁"],"val":"ｹｲｶﾙ板"},{"cat":"内部","parts":["天井","壁","天井･梁"],"val":"ｹｲｶﾙ板/塗装"},{"cat":"内部","parts":["天井","壁","天井･梁"],"val":"金属ﾊﾟﾈﾙ/塗装"},{"cat":"内部","parts":["天井","壁","天井･梁"],"val":"ｸﾛｽ"},{"cat":"内部","parts":["天井","壁","天井･梁"],"val":"化粧ﾌｨﾙﾑ貼り"},{"cat":"内部","parts":["天井","壁","建具","その他"],"val":"化粧ﾊﾟﾈﾙ"},{"cat":"内部","parts":["天井","壁","建具","その他"],"val":"化粧ﾊﾟﾈﾙ/ｶﾞﾗｽ"},{"cat":"内部","parts":["天井","壁","建具","その他"],"val":"化粧ﾊﾟﾈﾙ/ｱﾙﾐ"},{"cat":"内部","parts":["天井","壁","その他"],"val":"化粧板"},{"cat":"内部","parts":["天井","壁","天井･梁"],"val":"石膏ﾎﾞｰﾄﾞ/ｸﾛｽ"},{"cat":"内部","parts":["天井","壁","天井･梁"],"val":"ｺﾝｸﾘｰﾄ/ｸﾛｽ"},{"cat":"内部","parts":["天井","壁","天井･梁"],"val":"漆喰"},{"cat":"内部","parts":["天井","壁","天井･梁"],"val":"石膏ﾎﾞｰﾄﾞ/塗装"},{"cat":"内部","parts":["天井","壁","天井･梁"],"val":"吸音ﾎﾞｰﾄﾞ"},{"cat":"内部","parts":["天井","壁","天井･梁"],"val":"木毛ｾﾒﾝﾄ板"},{"cat":"内部","parts":["天井","壁","床"],"val":"ﾓﾙﾀﾙ/塗装"},{"cat":"内部","parts":["天井","壁","床"],"val":"木板/塗装"},{"cat":"内部","parts":["天井","壁","床","梁","柱","梁･柱","壁･柱","天井･梁","梁･壁"],"val":"ｺﾝｸﾘｰﾄ/ﾓﾙﾀﾙ"},{"cat":"内部","parts":["天井","壁","床","梁","柱","梁･柱","壁･柱","天井･梁","梁･壁"],"val":"ｺﾝｸﾘｰﾄ/塗装"},{"cat":"内部","parts":["天井","壁","梁","柱","梁･柱","壁･柱","天井･梁","梁･壁"],"val":"ｺﾝｸﾘｰﾄ打ち放し"},{"cat":"内部","parts":["梁","柱","その他","梁･柱","壁･柱","天井･梁","梁･壁"],"val":"木材/塗装"},{"cat":"内部","parts":["天井","壁","その他","梁･柱","壁･柱","天井･梁","梁･壁"],"val":"木板/塗装"},{"cat":"内部","parts":["天井","壁","その他","梁･柱","壁･柱","天井･梁","梁･壁"],"val":"木合板/塗装"},{"cat":"内部","parts":["壁"],"val":"珪藻土"},{"cat":"内部","parts":["天井","壁","建具"],"val":"木合板/塗装"},{"cat":"内部","parts":["天井","壁"],"val":"聚楽調塗材"},{"cat":"内部","parts":["壁","その他"],"val":"鋼板"},{"cat":"内部","parts":["天井","壁"],"val":"有孔木質ﾎﾞｰﾄﾞ"},{"cat":"内部","parts":["天井","壁"],"val":"ﾛｯｸｳｰﾙ吸音板"},{"cat":"内部","parts":["天井","梁","柱","壁","梁･柱","壁･柱","天井･梁","梁･壁"],"val":"ﾛｯｸｳｰﾙ吹付"},{"cat":"内部","parts":["壁","床"],"val":"ﾀｲﾙ"},{"cat":"内部","parts":["床"],"val":"ﾋﾞﾆﾙ床ｼｰﾄ"},{"cat":"内部","parts":["床"],"val":"ﾋﾞﾆﾙ床ﾀｲﾙ"},{"cat":"内部","parts":["床"],"val":"ｸｯｼｮﾝﾌﾛｱ"},{"cat":"内部","parts":["壁","床","その他"],"val":"石材"},{"cat":"内部","parts":["建具","窓サッシ","その他"],"val":"ｽﾃﾝﾚｽ/ｶﾞﾗｽ"},{"cat":"内部","parts":["壁","床","その他"],"val":"ｼｰﾘﾝｸﾞ"},{"cat":"内部","parts":["壁","柱","床","その他","壁･柱"],"val":"ｽﾃﾝﾚｽ"},{"cat":"内部","parts":["壁","その他"],"val":"塩ﾋﾞ"},{"cat":"内部","parts":["壁","床","その他"],"val":"人工大理石"},{"cat":"内部","parts":["壁","床","その他"],"val":"人造大理石"},{"cat":"内部","parts":["壁","床","梁","柱","梁･柱","壁･柱","梁･壁"],"val":"軽量ｺﾝｸﾘｰﾄ"},{"cat":"内部","parts":["壁","その他"],"val":"ｺﾝｸﾘｰﾄﾌﾞﾛｯｸ"},{"cat":"内部","parts":["床"],"val":"ﾀｲﾙｶｰﾍﾟｯﾄ"},{"cat":"内部","parts":["床"],"val":"無垢ﾌﾛｰﾘﾝｸﾞ"},{"cat":"内部","parts":["床"],"val":"縁甲板"},{"cat":"内部","parts":["床"],"val":"畳"},{"cat":"内部","parts":["床"],"val":"樹脂系塗床"},{"cat":"内部","parts":["床"],"val":"複合ﾌﾛｰﾘﾝｸﾞ"},{"cat":"内部","parts":["建具"],"val":"襖"},{"cat":"内部","parts":["建具"],"val":"鋼製"},{"cat":"内部","parts":["建具"],"val":"障子"},{"cat":"内部","parts":["建具","窓サッシ"],"val":"木枠/木合板"},{"cat":"内部","parts":["建具","窓サッシ","その他"],"val":"ｱﾙﾐ"},{"cat":"内部","parts":["建具","窓サッシ"],"val":"鋼製/ｶﾞﾗｽ"},{"cat":"内部","parts":["建具","窓サッシ"],"val":"木枠/ｱｸﾘﾙ"},{"cat":"内部","parts":["建具","窓サッシ","その他"],"val":"樹脂"},{"cat":"内部","parts":["建具","その他"],"val":"木製"},{"cat":"内部","parts":["建具","窓サッシ","その他"],"val":"ｱﾙﾐ/ｶﾞﾗｽ"},{"cat":"内部","parts":["建具","窓サッシ","その他"],"val":"鋼製枠/ｶﾞﾗｽ"},{"cat":"内部","parts":["その他"],"val":"ｶﾞﾗｽ鏡"},{"cat":"内部","parts":["その他"],"val":"ﾎﾟﾘｶ"},{"cat":"内部","parts":["梁","柱","その他","梁･柱","天井･梁"],"val":"鉄骨"},{"cat":"内部","parts":["梁","柱","その他","梁･柱","天井･梁"],"val":"鉄骨/塗装"},{"cat":"内部","parts":["床"],"val":"防滑性ﾋﾞﾆﾙ床ｼｰﾄ"},{"cat":"内部","parts":["床"],"val":"Pﾀｲﾙ"},{"cat":"内部","parts":["建具","その他"],"val":"繊維製"},{"cat":"設備","parts":["便器、洗面器等"],"val":"陶器"},{"cat":"設備","parts":["給排水","便器、洗面器等","その他"],"val":"ｽﾃﾝﾚｽ"},{"cat":"設備","parts":["便器、洗面器等"],"val":"ｶﾞﾗｽ鏡"},{"cat":"設備","parts":["給排水"],"val":"塩ﾋﾞ"},{"cat":"設備","parts":["便器、洗面器等","給排水","その他"],"val":"樹脂/鋼製"},{"cat":"設備","parts":["便器、洗面器等","給排水","その他"],"val":"鋼製"},{"cat":"設備","parts":["照明器具","電気設備","便器、洗面器等","給排水","湯沸器、コンロ","換気設備","空調設備","その他"],"val":"-"}],"notes":[{"cat":"外部","parts":["基礎、土壌","外構"],"val":"地盤沈下"},{"cat":"外部","parts":["基礎、土壌"],"val":"基礎巾木爆裂"},{"cat":"外部","parts":["基礎、土壌"],"val":"基礎巾木ﾓﾙﾀﾙひび割れ"},{"cat":"外部","parts":["基礎、土壌"],"val":"基礎巾木ﾓﾙﾀﾙ欠損"},{"cat":"外部","parts":["基礎、土壌"],"val":"基礎巾木塗膜剥がれ"},{"cat":"外部","parts":["基礎、土壌"],"val":"基礎ﾓﾙﾀﾙ浮き"},{"cat":"外部","parts":["基礎、土壌"],"val":"犬走りひび割れ"},{"cat":"外部","parts":["外壁"],"val":"ALCﾊﾟﾈﾙ欠損"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱"],"val":"型枠目地補修部周辺の白華"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱"],"val":"型枠目地部周辺の白華"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"塗膜剥がれ"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"塗膜劣化"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"塗膜劣化・汚れ"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"塗膜浮き"},{"cat":"外部","parts":["外壁","庇、軒天","建具","外構","構造材","その他"],"val":"木部経年劣化"},{"cat":"外部","parts":["外壁","窓サッシ","その他"],"val":"水切金物変形"},{"cat":"外部","parts":["外壁"],"val":"漆喰ひび割れ"},{"cat":"外部","parts":["外壁"],"val":"漆喰ひび割れ・欠損"},{"cat":"外部","parts":["外壁","庇、軒天","その他"],"val":"漆喰経年劣化"},{"cat":"外部","parts":["外壁","庇、軒天","外構","その他"],"val":"笠木浮き"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"補修跡爆裂"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"補修跡ｼｰﾘﾝｸﾞ劣化"},{"cat":"外部","parts":["外壁","その他"],"val":"通気口錆"},{"cat":"外部","parts":["外壁","外構","その他"],"val":"金物腐食"},{"cat":"外部","parts":["外壁","外構","その他"],"val":"金物錆"},{"cat":"外部","parts":["外壁","庇、軒天","鉄骨部材","その他"],"val":"鋼板塗膜劣化"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ｺﾝｸﾘｰﾄひび割れ"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ｺﾝｸﾘｰﾄひび割れ・塗膜剥がれ"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ｺﾝｸﾘｰﾄひび割れ・爆裂・露筋"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ｺﾝｸﾘｰﾄひび割れ･欠損"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ｺﾝｸﾘｰﾄひび割れ･浮き"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ｺﾝｸﾘｰﾄ欠損"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ｺﾝｸﾘｰﾄ漏水跡"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ｺﾝｸﾘｰﾄ爆裂"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ｺﾝｸﾘｰﾄ網状ひび割れ"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ｺﾝｸﾘｰﾄ露筋"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ｺﾝｸﾘｰﾄﾌﾞﾛｯｸ欠損"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ｺﾝｸﾘｰﾄﾌﾞﾛｯｸ白華"},{"cat":"外部","parts":["外壁","庇、軒天","窓サッシ","建具","その他"],"val":"ｼｰﾘﾝｸﾞ劣化"},{"cat":"外部","parts":["外壁","外装仕上げ材","床","外構"],"val":"ﾀｲﾙひび割れ"},{"cat":"外部","parts":["外壁","外装仕上げ材","床","外構"],"val":"ﾀｲﾙ欠損"},{"cat":"外部","parts":["外壁","外装仕上げ材","床","外構"],"val":"ﾀｲﾙ浮き"},{"cat":"外部","parts":["外壁","外装仕上げ材","床","外構"],"val":"ﾀｲﾙ目地の劣化"},{"cat":"外部","parts":["外壁","外構","鉄骨部材","その他"],"val":"ﾎﾞﾙﾄ錆"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ﾓﾙﾀﾙひび割れ"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ﾓﾙﾀﾙひび割れ・浮き"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ﾓﾙﾀﾙ欠損"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ﾓﾙﾀﾙ浮き"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ﾓﾙﾀﾙ網状ひび割れ"},{"cat":"外部","parts":["庇、軒天","その他"],"val":"波板劣化"},{"cat":"外部","parts":["床","外構"],"val":"土間ｺﾝｸﾘｰﾄ汚れ"},{"cat":"外部","parts":["床","外構"],"val":"土間ｺﾝｸﾘｰﾄひび割れ"},{"cat":"外部","parts":["床","外構"],"val":"土間ｺﾝｸﾘｰﾄ欠損"},{"cat":"外部","parts":["床","外構"],"val":"土間ｺﾝｸﾘｰﾄ浮き"},{"cat":"外部","parts":["床","外構"],"val":"土間ﾀｲﾙ欠損"},{"cat":"外部","parts":["床","外構"],"val":"床ﾀｲﾙ汚れ"},{"cat":"外部","parts":["床","外構"],"val":"段鼻欠損"},{"cat":"外部","parts":["床","外構"],"val":"段鼻浮き"},{"cat":"外部","parts":["床","外構"],"val":"防滑材劣化"},{"cat":"外部","parts":["床","外構","その他"],"val":"階段踏面浮き"},{"cat":"外部","parts":["建具"],"val":"建具劣化"},{"cat":"外部","parts":["建具"],"val":"建具変形"},{"cat":"外部","parts":["建具"],"val":"建具腐食"},{"cat":"外部","parts":["建具"],"val":"建具錆"},{"cat":"外部","parts":["建具"],"val":"鋼製建具塗膜劣化"},{"cat":"外部","parts":["建具"],"val":"鋼製建具塗膜剝がれ"},{"cat":"外部","parts":["建具"],"val":"鋼製建具腐食"},{"cat":"外部","parts":["建具"],"val":"鋼製建具開閉不良"},{"cat":"外部","parts":["建具"],"val":"ｼｬｯﾀｰ経年劣化"},{"cat":"外部","parts":["建具"],"val":"ｼｬｯﾀｰ腐食"},{"cat":"外部","parts":["建具"],"val":"ｼｬｯﾀｰ錆･開閉不良"},{"cat":"外部","parts":["窓サッシ"],"val":"ｶﾞﾗｽひび割れ"},{"cat":"外部","parts":["窓サッシ"],"val":"ｶﾞﾗｽﾌﾞﾛｯｸひび割れ"},{"cat":"外部","parts":["窓サッシ"],"val":"ｻｯｼ経年劣化"},{"cat":"外部","parts":["窓サッシ"],"val":"ﾋﾞｰﾄ外れ"},{"cat":"外部","parts":["排水設備"],"val":"樋掴み金物脱落"},{"cat":"外部","parts":["排水設備"],"val":"樋掴み金物腐食"},{"cat":"外部","parts":["排水設備"],"val":"樋掴み金物錆"},{"cat":"外部","parts":["排水設備"],"val":"樋破損"},{"cat":"外部","parts":["排水設備"],"val":"ｸﾞﾚｰﾁﾝｸﾞ錆"},{"cat":"外部","parts":["排水設備"],"val":"ﾄﾞﾚ-ﾝ錆"},{"cat":"外部","parts":["床","外構","その他"],"val":"手摺腐食"},{"cat":"外部","parts":["床","外構","その他"],"val":"手摺錆"},{"cat":"外部","parts":["外構","その他"],"val":"ﾌｪﾝｽ破損"},{"cat":"外部","parts":["外構","その他"],"val":"ﾌｪﾝｽ腐食"},{"cat":"外部","parts":["外構","その他"],"val":"ﾍﾞﾝﾁ破損"},{"cat":"外部","parts":["外構","その他"],"val":"ﾍﾞﾝﾁ腐食"},{"cat":"外部","parts":["外構","その他"],"val":"ﾍﾞﾝﾁ錆･固定不良"},{"cat":"外部","parts":["外壁","床","外構","その他"],"val":"Exp.J破損"},{"cat":"外部","parts":["柱","構造材"],"val":"木柱腐朽"},{"cat":"外部","parts":["柱","鉄骨部材"],"val":"柱上部･鉄骨屋根基礎欠損"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ｺﾝｸﾘｰﾄ白華"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱","床","外構","その他"],"val":"ﾓﾙﾀﾙ剥落"},{"cat":"外部","parts":["外壁","庇、軒天","梁","柱"],"val":"鉄筋腐食"},{"cat":"外部","parts":["外壁"],"val":"外壁ｸﾗｯｸ注入跡劣化"},{"cat":"外部","parts":["建具"],"val":"鋼製建具錆"},{"cat":"外部","parts":["外構","その他"],"val":"ﾌｪﾝｽ錆"},{"cat":"外部","parts":["外構","その他"],"val":"ﾍﾞﾝﾁ劣化"},{"cat":"外部","parts":["排水設備"],"val":"排水溝ひび割れ"},{"cat":"外部","parts":["排水設備"],"val":"排水溝詰まり"},{"cat":"外部","parts":["窓サッシ"],"val":"ｻｯｼ錆"},{"cat":"外部","parts":["床","外構"],"val":"土間ｺﾝｸﾘｰﾄ爆裂"},{"cat":"外部","parts":["外壁","外装仕上げ材","床","外構"],"val":"ﾀｲﾙ剥落"},{"cat":"外部","parts":["床","外構","その他"],"val":"手摺塗膜剥がれ"},{"cat":"外部","parts":["基礎、土壌"],"val":"基礎ひび割れ"},{"cat":"外部","parts":["外構","その他"],"val":"ﾋﾟｸﾄｸﾞﾗﾑ経年劣化"},{"cat":"外部","parts":["外構","その他"],"val":"ﾋﾟｸﾄｸﾞﾗﾑ退色"},{"cat":"外部","parts":["外構","その他"],"val":"ﾋﾟｸﾄｸﾞﾗﾑ脱落"},{"cat":"屋根","parts":["防水層"],"val":"塗膜防水劣化"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"一部塗膜剥がれ･爆裂"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"塗膜剥がれ"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"塗膜剥がれ・錆"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"塗膜浮き"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"塗膜膨れ"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"塗膜劣化･汚れ"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"ｺﾝｸﾘｰﾄひび割れ"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"ｺﾝｸﾘｰﾄ欠損"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"ｺﾝｸﾘｰﾄ爆裂"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"ｺﾝｸﾘｰﾄ浮き"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"ｺﾝｸﾘｰﾄ露筋"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"ｺﾝｸﾘｰﾄ漏水ひび割れ"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"ｼｰﾘﾝｸﾞ劣化"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"ﾓﾙﾀﾙひび割れ"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"ﾓﾙﾀﾙ欠損"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"ﾓﾙﾀﾙ浮き"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"目地劣化"},{"cat":"屋根","parts":["屋根"],"val":"折板屋根錆"},{"cat":"屋根","parts":["屋根"],"val":"屋根材経年劣化"},{"cat":"屋根","parts":["屋根"],"val":"屋根材破損"},{"cat":"屋根","parts":["屋根"],"val":"屋根腐食"},{"cat":"屋根","parts":["屋根"],"val":"瓦破損"},{"cat":"屋根","parts":["防水層","その他"],"val":"笠木塗膜劣化･汚れ"},{"cat":"屋根","parts":["防水層","その他"],"val":"笠木浮き・ひび割れ"},{"cat":"屋根","parts":["屋根","軒"],"val":"表面風化・汚れによる経年変状"},{"cat":"屋根","parts":["屋根","その他"],"val":"ﾄｯﾌﾟﾗｲﾄ経年劣化・金物の錆"},{"cat":"屋根","parts":["屋根","その他"],"val":"ﾍﾞｰｽﾌﾟﾚｰﾄ錆"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"ﾎﾞﾙﾄ腐食"},{"cat":"屋根","parts":["屋根","その他"],"val":"ﾜｲﾔｰ緊結部錆"},{"cat":"屋根","parts":["屋根","その他"],"val":"押さえｺﾝｸﾘｰﾄ経年劣化"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"鉄骨腐食"},{"cat":"屋根","parts":["屋根","その他"],"val":"手摺腐食"},{"cat":"屋根","parts":["屋根","その他"],"val":"手摺錆"},{"cat":"屋根","parts":["軒","その他"],"val":"天井ﾊﾟﾈﾙ破損"},{"cat":"屋根","parts":["排水設備"],"val":"樋経年劣化"},{"cat":"屋根","parts":["排水設備"],"val":"樋腐食"},{"cat":"屋根","parts":["排水設備"],"val":"樋破損"},{"cat":"屋根","parts":["排水設備"],"val":"樋詰まり"},{"cat":"屋根","parts":["排水設備"],"val":"ﾄﾞﾚ-ﾝｷｬｯﾌﾟなし"},{"cat":"屋根","parts":["排水設備"],"val":"ﾄﾞﾚ-ﾝ錆"},{"cat":"屋根","parts":["排水設備"],"val":"ﾄﾞﾚ-ﾝ腐食"},{"cat":"屋根","parts":["排水設備"],"val":"ﾄﾞﾚｰﾝ土砂堆積"},{"cat":"屋根","parts":["排水設備"],"val":"ﾄﾞﾚｰﾝ土砂堆積･植生"},{"cat":"屋根","parts":["排水設備"],"val":"ﾄﾞﾚｰﾝ詰まり"},{"cat":"屋根","parts":["防水層"],"val":"防水層膨れ"},{"cat":"屋根","parts":["防水層"],"val":"防水層破断"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"ｺﾝｸﾘｰﾄ白華"},{"cat":"屋根","parts":["屋根"],"val":"屋根材ずれ"},{"cat":"屋根","parts":["屋根"],"val":"折板屋根ﾎﾞﾙﾄ腐食"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"鉄骨塗膜劣化"},{"cat":"屋根","parts":["軒","その他"],"val":"天井ﾊﾟﾈﾙ劣化"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"雨漏り跡"},{"cat":"屋根","parts":["屋根","軒","その他"],"val":"ﾓﾙﾀﾙ剥落"},{"cat":"屋根","parts":["防水層","排水設備"],"val":"防水層ﾄﾞﾚｰﾝ周り劣化"},{"cat":"内部","parts":["天井"],"val":"ｺﾝｸﾘｰﾄひび割れ"},{"cat":"内部","parts":["天井"],"val":"ｺﾝｸﾘｰﾄ欠損"},{"cat":"内部","parts":["天井"],"val":"ｺﾝｸﾘｰﾄ爆裂"},{"cat":"内部","parts":["天井"],"val":"ｺﾝｸﾘｰﾄ網状ひび割れ"},{"cat":"内部","parts":["天井"],"val":"ｺﾝｸﾘｰﾄ露筋"},{"cat":"内部","parts":["天井"],"val":"ﾓﾙﾀﾙひび割れ"},{"cat":"内部","parts":["天井"],"val":"ﾓﾙﾀﾙ欠損"},{"cat":"内部","parts":["天井"],"val":"ﾓﾙﾀﾙ浮き"},{"cat":"内部","parts":["天井"],"val":"天井ﾎﾞｰﾄﾞ破損"},{"cat":"内部","parts":["天井"],"val":"天井ｹｲｶﾙ板破損"},{"cat":"内部","parts":["天井"],"val":"天井汚れ"},{"cat":"内部","parts":["天井"],"val":"天井たわみ"},{"cat":"内部","parts":["天井"],"val":"天井ﾎﾞｰﾄﾞずれ"},{"cat":"内部","parts":["天井"],"val":"天井塗膜剝がれ"},{"cat":"内部","parts":["天井"],"val":"天井塗膜浮き"},{"cat":"内部","parts":["天井"],"val":"天井塗膜劣化"},{"cat":"内部","parts":["天井"],"val":"天井塗膜劣化・汚れ"},{"cat":"内部","parts":["天井"],"val":"天井漏水跡"},{"cat":"内部","parts":["壁"],"val":"ｺﾝｸﾘｰﾄひび割れ"},{"cat":"内部","parts":["壁"],"val":"ｺﾝｸﾘｰﾄ漏水ひび割れ"},{"cat":"内部","parts":["壁"],"val":"ｺﾝｸﾘｰﾄひび割れ・爆裂"},{"cat":"内部","parts":["壁"],"val":"ｺﾝｸﾘｰﾄ欠損"},{"cat":"内部","parts":["壁"],"val":"ｺﾝｸﾘｰﾄ爆裂"},{"cat":"内部","parts":["壁"],"val":"ｺﾝｸﾘｰﾄ網状ひび割れ"},{"cat":"内部","parts":["壁"],"val":"ｺﾝｸﾘｰﾄ露筋"},{"cat":"内部","parts":["壁"],"val":"ﾓﾙﾀﾙひび割れ"},{"cat":"内部","parts":["壁"],"val":"ﾓﾙﾀﾙ欠損"},{"cat":"内部","parts":["壁"],"val":"ﾓﾙﾀﾙ浮き"},{"cat":"内部","parts":["壁"],"val":"ﾓﾙﾀﾙ網状ひび割れ"},{"cat":"内部","parts":["壁"],"val":"内壁汚れ"},{"cat":"内部","parts":["壁"],"val":"内壁漏水跡"},{"cat":"内部","parts":["壁"],"val":"内壁仕上げ材劣化・汚れ"},{"cat":"内部","parts":["壁"],"val":"内壁塗膜剥がれ"},{"cat":"内部","parts":["壁"],"val":"内壁塗膜浮き"},{"cat":"内部","parts":["壁"],"val":"内壁塗膜劣化"},{"cat":"内部","parts":["壁"],"val":"内壁塗膜劣化・汚れ"},{"cat":"内部","parts":["壁","天井"],"val":"ｼｰﾘﾝｸﾞ劣化"},{"cat":"内部","parts":["壁","天井"],"val":"ｺﾝｸﾘｰﾄひび割れ･白華"},{"cat":"内部","parts":["壁","床"],"val":"ﾀｲﾙひび割れ"},{"cat":"内部","parts":["壁","床"],"val":"ﾀｲﾙ欠損"},{"cat":"内部","parts":["壁","床"],"val":"ﾀｲﾙ浮き"},{"cat":"内部","parts":["壁","床"],"val":"ﾀｲﾙ目地の劣化"},{"cat":"内部","parts":["壁","床"],"val":"ｼｰﾘﾝｸﾞ劣化"},{"cat":"内部","parts":["壁","天井","その他"],"val":"金物腐食"},{"cat":"内部","parts":["壁","天井","その他"],"val":"金物錆"},{"cat":"内部","parts":["壁","天井","その他"],"val":"ﾎﾞﾙﾄ錆"},{"cat":"内部","parts":["床"],"val":"土間ｺﾝｸﾘｰﾄの汚れ"},{"cat":"内部","parts":["床"],"val":"土間ｺﾝｸﾘｰﾄひび割れ"},{"cat":"内部","parts":["床"],"val":"土間ｺﾝｸﾘｰﾄ欠損"},{"cat":"内部","parts":["床"],"val":"土間ｺﾝｸﾘｰﾄ浮き"},{"cat":"内部","parts":["床"],"val":"床仕上げ材劣化"},{"cat":"内部","parts":["床"],"val":"床仕上げ材劣化・汚れ"},{"cat":"内部","parts":["床"],"val":"床仕上げ材摩耗"},{"cat":"内部","parts":["床"],"val":"床仕上げ材漏水跡"},{"cat":"内部","parts":["床"],"val":"床仕上げ材剥がれ"},{"cat":"内部","parts":["床"],"val":"床ﾀｲﾙ汚れ"},{"cat":"内部","parts":["床"],"val":"段鼻欠損"},{"cat":"内部","parts":["床"],"val":"段鼻浮き"},{"cat":"内部","parts":["床"],"val":"防滑材劣化"},{"cat":"内部","parts":["床"],"val":"階段踏面浮き"},{"cat":"内部","parts":["床","その他"],"val":"補修跡ひび割れ"},{"cat":"内部","parts":["建具"],"val":"化粧ﾊﾟﾈﾙ破損"},{"cat":"内部","parts":["建具"],"val":"木製建具塗膜剝がれ"},{"cat":"内部","parts":["建具"],"val":"木製建具破損"},{"cat":"内部","parts":["建具"],"val":"木製建具変形"},{"cat":"内部","parts":["建具"],"val":"木製建具経年劣化"},{"cat":"内部","parts":["建具"],"val":"建具枠錆"},{"cat":"内部","parts":["建具"],"val":"建具枠腐食"},{"cat":"内部","parts":["建具"],"val":"建具開閉不良"},{"cat":"内部","parts":["建具"],"val":"鋼製建具塗膜剝がれ"},{"cat":"内部","parts":["建具"],"val":"鋼製建具錆"},{"cat":"内部","parts":["建具"],"val":"鋼製建具腐食"},{"cat":"内部","parts":["建具"],"val":"鋼製建具変形"},{"cat":"内部","parts":["建具"],"val":"鋼製建具経年劣化"},{"cat":"内部","parts":["建具"],"val":"ﾄﾞｱｸﾛｰｻﾞｰ錆"},{"cat":"内部","parts":["建具"],"val":"ﾄﾞｱｸﾛｰｻﾞｰ油漏れ"},{"cat":"内部","parts":["建具"],"val":"蝶番錆"},{"cat":"内部","parts":["建具"],"val":"取手欠損"},{"cat":"内部","parts":["建具"],"val":"ｼｬｯﾀｰ腐食"},{"cat":"内部","parts":["建具"],"val":"ｼｬｯﾀｰ錆"},{"cat":"内部","parts":["建具"],"val":"ｼｬｯﾀｰ錆･開閉不良"},{"cat":"内部","parts":["建具"],"val":"ｼｰﾘﾝｸﾞ劣化"},{"cat":"内部","parts":["窓サッシ"],"val":"ｶﾞﾗｽひび割れ"},{"cat":"内部","parts":["窓サッシ"],"val":"ｻｯｼ経年劣化"},{"cat":"内部","parts":["窓サッシ"],"val":"ｼｰﾘﾝｸﾞ劣化"},{"cat":"内部","parts":["壁","床","その他"],"val":"Exp.J破損"},{"cat":"内部","parts":["その他"],"val":"ｼｰﾘﾝｸﾞ劣化"},{"cat":"内部","parts":["床","その他"],"val":"手摺腐食"},{"cat":"内部","parts":["床","その他"],"val":"手摺錆"},{"cat":"内部","parts":["床","その他"],"val":"手摺錆・塗膜剥がれ"},{"cat":"内部","parts":["梁","柱","その他"],"val":"鉄骨腐食"},{"cat":"内部","parts":["梁","柱","その他"],"val":"ｺﾝｸﾘｰﾄひび割れ"},{"cat":"内部","parts":["梁","柱","その他"],"val":"ｺﾝｸﾘｰﾄ欠損"},{"cat":"内部","parts":["梁","柱","その他"],"val":"ｺﾝｸﾘｰﾄ爆裂"},{"cat":"内部","parts":["梁","柱","その他"],"val":"ｺﾝｸﾘｰﾄ露筋"},{"cat":"内部","parts":["梁","柱","その他"],"val":"ﾓﾙﾀﾙひび割れ"},{"cat":"内部","parts":["壁"],"val":"内壁仕上げ材剥がれ"},{"cat":"内部","parts":["床"],"val":"床ｺﾝｸﾘｰﾄひび割れ"},{"cat":"内部","parts":["床"],"val":"床ｺﾝｸﾘｰﾄ爆裂"},{"cat":"内部","parts":["建具"],"val":"鋼製建具塗膜劣化"},{"cat":"内部","parts":["建具"],"val":"木製建具腐食"},{"cat":"内部","parts":["床","その他"],"val":"手摺塗膜剥がれ"},{"cat":"内部","parts":["床","その他"],"val":"手摺ぐらつき"},{"cat":"内部","parts":["梁","柱","その他"],"val":"鉄骨塗膜劣化"},{"cat":"内部","parts":["天井","壁"],"val":"雨漏り跡"},{"cat":"内部","parts":["天井","壁"],"val":"結露跡"},{"cat":"内部","parts":["その他"],"val":"ﾋﾟｸﾄｸﾞﾗﾑ経年劣化"},{"cat":"内部","parts":["その他"],"val":"ﾋﾟｸﾄｸﾞﾗﾑ退色"},{"cat":"内部","parts":["その他"],"val":"ﾋﾟｸﾄｸﾞﾗﾑ脱落"},{"cat":"設備","parts":["照明器具"],"val":"照明ｶﾊﾞｰ劣化"},{"cat":"設備","parts":["照明器具"],"val":"照明ｶﾊﾞｰなし"},{"cat":"設備","parts":["照明器具"],"val":"照明器具劣化"},{"cat":"設備","parts":["照明器具"],"val":"照明不点灯"},{"cat":"設備","parts":["電気設備"],"val":"電気配線未処理"},{"cat":"設備","parts":["電気設備"],"val":"分電盤劣化"},{"cat":"設備","parts":["電気設備"],"val":"電気BOX錆"},{"cat":"設備","parts":["電気設備"],"val":"電気BOX腐食"},{"cat":"設備","parts":["電気設備"],"val":"電気BOX塗膜剥がれ"},{"cat":"設備","parts":["電気設備"],"val":"ｺﾝｾﾝﾄ損傷"},{"cat":"設備","parts":["電気設備"],"val":"ｺﾝｾﾝﾄ劣化"},{"cat":"設備","parts":["電気設備"],"val":"ｺﾝｾﾝﾄ錆"},{"cat":"設備","parts":["電気設備"],"val":"ｽｲｯﾁ劣化"},{"cat":"設備","parts":["電気設備"],"val":"ﾌﾞﾚｰｶｰ劣化"},{"cat":"設備","parts":["電気設備"],"val":"ﾄﾗﾝｽ劣化"},{"cat":"設備","parts":["便器、洗面器等"],"val":"便器経年劣化"},{"cat":"設備","parts":["便器、洗面器等"],"val":"便器欠損"},{"cat":"設備","parts":["便器、洗面器等"],"val":"洗面器経年劣化"},{"cat":"設備","parts":["便器、洗面器等"],"val":"洗面台劣化"},{"cat":"設備","parts":["便器、洗面器等"],"val":"水栓金具経年劣化"},{"cat":"設備","parts":["便器、洗面器等"],"val":"鏡劣化"},{"cat":"設備","parts":["便器、洗面器等"],"val":"ﾍﾟｰﾊﾟｰﾎﾙﾀﾞｰ劣化"},{"cat":"設備","parts":["給排水"],"val":"排水管腐食"},{"cat":"設備","parts":["給排水"],"val":"排水管塗膜剥がれ"},{"cat":"設備","parts":["給排水"],"val":"給水管腐食"},{"cat":"設備","parts":["給排水"],"val":"給水管経年劣化"},{"cat":"設備","parts":["給排水"],"val":"給水管錆"},{"cat":"設備","parts":["給排水"],"val":"給湯管経年劣化"},{"cat":"設備","parts":["給排水"],"val":"量水器経年劣化"},{"cat":"設備","parts":["給排水"],"val":"排水管錆"},{"cat":"設備","parts":["給排水"],"val":"受水槽劣化"},{"cat":"設備","parts":["給排水"],"val":"高架水槽劣化"},{"cat":"設備","parts":["給排水"],"val":"排水溝破損"},{"cat":"設備","parts":["給排水"],"val":"排水桝蓋破損"},{"cat":"設備","parts":["給排水"],"val":"排水桝蓋錆"},{"cat":"設備","parts":["給排水"],"val":"汚水桝蓋破損"},{"cat":"設備","parts":["給排水"],"val":"汚水桝蓋錆"},{"cat":"設備","parts":["給排水"],"val":"ﾏﾝﾎｰﾙ蓋破損"},{"cat":"設備","parts":["給排水"],"val":"ﾏﾝﾎｰﾙ蓋錆"},{"cat":"設備","parts":["給排水"],"val":"散水栓蓋破損"},{"cat":"設備","parts":["給排水"],"val":"散水栓蓋錆"},{"cat":"設備","parts":["給排水"],"val":"浄化槽経年劣化"},{"cat":"設備","parts":["給排水"],"val":"浄化槽ﾌﾞﾛｱ劣化"},{"cat":"設備","parts":["給排水"],"val":"ﾎﾟﾝﾌﾟ経年劣化"},{"cat":"設備","parts":["湯沸器、コンロ"],"val":"瞬間湯沸器劣化"},{"cat":"設備","parts":["湯沸器、コンロ"],"val":"給湯器経年劣化"},{"cat":"設備","parts":["湯沸器、コンロ"],"val":"ﾎﾞｲﾗｰ劣化"},{"cat":"設備","parts":["湯沸器、コンロ"],"val":"ｺﾝﾛ経年劣化"},{"cat":"設備","parts":["換気設備"],"val":"換気口劣化"},{"cat":"設備","parts":["換気設備"],"val":"換気扇劣化"},{"cat":"設備","parts":["換気設備"],"val":"換気設備経年劣化"},{"cat":"設備","parts":["換気設備"],"val":"ﾍﾞﾝﾄｷｬｯﾌﾟ劣化"},{"cat":"設備","parts":["換気設備"],"val":"ﾀﾞｸﾄ劣化"},{"cat":"設備","parts":["換気設備"],"val":"ﾌｰﾄﾞ劣化"},{"cat":"設備","parts":["空調設備"],"val":"ｴｱｺﾝ経年劣化"},{"cat":"設備","parts":["空調設備"],"val":"ｴｱｺﾝ室外機劣化"},{"cat":"設備","parts":["空調設備"],"val":"ｴｱｺﾝ冷媒管劣化"},{"cat":"設備","parts":["空調設備"],"val":"ﾁﾗｰ劣化"},{"cat":"設備","parts":["空調設備"],"val":"冷却塔劣化"},{"cat":"設備","parts":["空調設備"],"val":"ﾎﾟﾝﾌﾟ経年劣化"},{"cat":"設備","parts":["空調設備"],"val":"膨張ﾀﾝｸ劣化"},{"cat":"設備","parts":["空調設備"],"val":"配管経年劣化"},{"cat":"設備","parts":["その他"],"val":"ｴﾚﾍﾞｰﾀｰ経年劣化"},{"cat":"設備","parts":["その他"],"val":"ﾌﾞﾗｲﾝﾄﾞ劣化"},{"cat":"設備","parts":["その他"],"val":"ﾌﾞﾗｲﾝﾄﾞ破損"},{"cat":"設備","parts":["その他"],"val":"避難器具経年劣化"},{"cat":"設備","parts":["その他"],"val":"消火栓前の障害物"},{"cat":"設備","parts":["その他"],"val":"消火設備状況"},{"cat":"設備","parts":["その他"],"val":"消防設備状況"},{"cat":"設備","parts":["その他"],"val":"防火ﾀﾞﾝﾊﾟｰ劣化"},{"cat":"設備","parts":["その他"],"val":"防火扉劣化"},{"cat":"設備","parts":["その他"],"val":"防火扉腐食"},{"cat":"設備","parts":["その他"],"val":"防火扉開閉不良"},{"cat":"設備","parts":["その他"],"val":"自動火災報知設備劣化"},{"cat":"設備","parts":["その他"],"val":"誘導灯経年劣化"},{"cat":"設備","parts":["その他"],"val":"感知器経年劣化"},{"cat":"設備","parts":["その他"],"val":"非常放送設備劣化"},{"cat":"設備","parts":["その他"],"val":"太陽光発電設備劣化"},{"cat":"設備","parts":["その他"],"val":"蓄電池設備劣化"},{"cat":"設備","parts":["その他"],"val":"受変電設備劣化"},{"cat":"設備","parts":["その他"],"val":"非常用発電設備劣化"},{"cat":"設備","parts":["その他"],"val":"ｷｭｰﾋﾞｸﾙ劣化"},{"cat":"設備","parts":["その他"],"val":"駐車場設備劣化"},{"cat":"設備","parts":["その他"],"val":"遊具劣化"},{"cat":"設備","parts":["その他"],"val":"遊具破損"},{"cat":"設備","parts":["その他"],"val":"遊具腐食"},{"cat":"設備","parts":["その他"],"val":"遊具錆"},{"cat":"設備","parts":["その他"],"val":"看板塗膜劣化"},{"cat":"設備","parts":["その他"],"val":"看板腐食"},{"cat":"設備","parts":["その他"],"val":"外灯劣化"},{"cat":"設備","parts":["その他"],"val":"外灯腐食"},{"cat":"設備","parts":["その他"],"val":"外灯錆"},{"cat":"設備","parts":["その他"],"val":"掲示板劣化"},{"cat":"設備","parts":["その他"],"val":"掲示板腐食"},{"cat":"設備","parts":["その他"],"val":"ﾎﾟｰﾙ錆"},{"cat":"設備","parts":["その他"],"val":"車止め破損"},{"cat":"設備","parts":["照明器具"],"val":"照明器具錆"},{"cat":"設備","parts":["電気設備"],"val":"分電盤錆"},{"cat":"設備","parts":["電気設備"],"val":"分電盤腐食"},{"cat":"設備","parts":["便器、洗面器等"],"val":"便器破損"},{"cat":"設備","parts":["便器、洗面器等"],"val":"洗面器破損"},{"cat":"設備","parts":["便器、洗面器等"],"val":"水栓金具漏水"},{"cat":"設備","parts":["給排水"],"val":"排水管経年劣化"},{"cat":"設備","parts":["給排水"],"val":"給水管漏水"},{"cat":"設備","parts":["給排水"],"val":"排水管漏水"},{"cat":"設備","parts":["その他"],"val":"消火器経年劣化"},{"cat":"設備","parts":["その他"],"val":"非常照明不点灯"},{"cat":"設備","parts":["その他"],"val":"ｲﾝﾀｰﾎﾝ劣化"},{"cat":"設備","parts":["その他"],"val":"放送設備劣化"},{"cat":"設備","parts":["その他"],"val":"ｶｰﾃﾝ劣化"},{"cat":"設備","parts":["その他"],"val":"ｶｰﾃﾝﾚｰﾙ破損"}]}
+      }
+    };
+
+    // ============================================
     // IndexedDB
     // ============================================
     const DB_NAME = 'flashnap';
@@ -1276,6 +1369,7 @@
       currentSurveyId: null,
       currentNodeId: null,
       lastRecordId: null,
+      lastMetadata: null,
       surveys: [],
       nodes: [],
       records: [],
@@ -2018,6 +2112,14 @@
       // 取り消しボタン（縦向き・横向き両方を同期）
       $('btnUndo').classList.toggle('hidden', !state.lastRecordId);
       $('btnUndoLandscape').classList.toggle('hidden', !state.lastRecordId);
+
+      // メタデータセクション表示制御
+      if (survey?.type && SURVEY_TYPES[survey.type]) {
+        $('metadataSection').classList.remove('hidden');
+        renderMetadataForm(survey.type);
+      } else {
+        $('metadataSection').classList.add('hidden');
+      }
     }
 
     function renderRecentList() {
@@ -2085,6 +2187,7 @@
       state.currentSurveyId = surveyId;
       state.currentNodeId = null;
       state.lastRecordId = null;
+      _metadataInitialized = false;
 
       // ヘッダーはFlashnapのまま、戻るボタンも非表示（パンくずで戻れる）
 
@@ -2105,6 +2208,7 @@
       if (isEdit) {
         const survey = state.surveys.find(s => s.id === surveyId);
         $('surveyName').value = survey.name;
+        $('surveyType').value = survey.type || '';
         $('templateSelect').value = '';
         if (survey.settings) {
           $('surveyDigits').value = survey.settings.digits || '';
@@ -2115,6 +2219,7 @@
         }
       } else {
         $('surveyName').value = '';
+        $('surveyType').value = '';
         $('templateSelect').value = '';
         $('surveyDigits').value = '';
         $('surveyStartNum').value = '';
@@ -2145,10 +2250,13 @@
       if ($('surveySeparator').value !== '') settings.separator = $('surveySeparator').value;
       settings.zeroPad = $('surveyZeroPad').checked;
 
+      const surveyType = $('surveyType').value || null;
+
       if (editId) {
         // 編集
         const survey = state.surveys.find(s => s.id === editId);
         survey.name = name;
+        survey.type = surveyType;
         survey.settings = Object.keys(settings).length > 0 ? settings : null;
         await dbPut('surveys', survey);
       } else {
@@ -2156,6 +2264,7 @@
         const survey = {
           id: generateId(),
           name,
+          type: surveyType,
           settings: Object.keys(settings).length > 0 ? settings : null,
           createdAt: Date.now()
         };
@@ -2374,6 +2483,9 @@
       // 4:3にクロップ
       const dataUrl = await cropTo4by3(rawDataUrl);
 
+      // メタデータ取得
+      const metadata = getMetadataFromForm();
+
       // 記録保存
       const record = {
         id: generateId(),
@@ -2381,10 +2493,16 @@
         nodeId: state.currentNodeId,
         number: nextNum,
         filename,
+        metadata,
         createdAt: Date.now()
       };
       await dbPut('records', record);
       state.records.push(record);
+
+      // 前回値キャリーフォワード
+      if (metadata) {
+        state.lastMetadata = metadata;
+      }
 
       // 写真保存
       await dbPut('photos', { id: record.id, dataUrl });
@@ -2543,6 +2661,21 @@
         zip.file(`${folderPath}/${record.filename}`, base64, { base64: true });
       }
 
+      // metadata.csv 生成（type付き調査の場合）
+      if (survey?.type && SURVEY_TYPES[survey.type]) {
+        const csvRows = ['\uFEFFファイル名,カテゴリ,部位,材質,特記'];
+        for (const record of records) {
+          const m = record.metadata;
+          if (m) {
+            const escapeCsv = (v) => (v || '').replace(/"/g, '""');
+            csvRows.push(`"${escapeCsv(record.filename)}","${escapeCsv(m.category)}","${escapeCsv(m.part)}","${escapeCsv(m.material)}","${escapeCsv(m.note)}"`);
+          }
+        }
+        if (csvRows.length > 1) {
+          zip.file('metadata.csv', csvRows.join('\r\n'));
+        }
+      }
+
       const content = await zip.generateAsync({ type: 'blob' });
       const date = new Date().toISOString().split('T')[0];
       const filename = `${survey.name}_${date}.zip`;
@@ -2554,6 +2687,155 @@
       URL.revokeObjectURL(a.href);
 
       $('exportModal').classList.remove('active');
+    }
+
+    // ============================================
+    // メタデータ入力（健全度調査票等）
+    // ============================================
+
+    let _metadataInitialized = false;
+
+    function renderMetadataForm(type) {
+      const master = SURVEY_TYPES[type]?.master;
+      if (!master) return;
+
+      const tabsEl = $('categoryTabs');
+      const cats = Object.keys(master.parts);
+
+      // 初回のみタブ生成
+      if (!_metadataInitialized) {
+        tabsEl.innerHTML = '';
+        cats.forEach((cat, i) => {
+          const btn = document.createElement('button');
+          btn.textContent = cat;
+          btn.dataset.cat = cat;
+          if (i === 0) btn.classList.add('active');
+          btn.addEventListener('click', () => onCategoryChange(type, cat));
+          tabsEl.appendChild(btn);
+        });
+
+        $('metaPart').addEventListener('change', () => onPartChange(type));
+
+        _metadataInitialized = true;
+
+        // 前回値復元 or デフォルト
+        if (state.lastMetadata?.category && cats.includes(state.lastMetadata.category)) {
+          onCategoryChange(type, state.lastMetadata.category);
+          restoreLastMetadata(type);
+        } else {
+          onCategoryChange(type, cats[0]);
+        }
+      }
+    }
+
+    function onCategoryChange(type, cat) {
+      const master = SURVEY_TYPES[type].master;
+      const tabsEl = $('categoryTabs');
+
+      // タブ切替
+      Array.from(tabsEl.children).forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.cat === cat);
+      });
+
+      // 部位リスト更新
+      const partEl = $('metaPart');
+      const parts = master.parts[cat] || [];
+      partEl.innerHTML = '<option value="">部位</option>';
+      parts.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p;
+        opt.textContent = p;
+        partEl.appendChild(opt);
+      });
+
+      // 材質・特記をリセット（カテゴリのみでフィルタ）
+      updateMaterialOptions(type, cat, '');
+      updateNoteOptions(type, cat, '');
+    }
+
+    function onPartChange(type) {
+      const cat = getCurrentCategory();
+      const part = $('metaPart').value;
+      updateMaterialOptions(type, cat, part);
+      updateNoteOptions(type, cat, part);
+    }
+
+    function getCurrentCategory() {
+      const active = document.querySelector('#categoryTabs button.active');
+      return active?.dataset.cat || '';
+    }
+
+    function updateMaterialOptions(type, cat, part) {
+      const master = SURVEY_TYPES[type].master;
+      const el = $('metaMaterial');
+      const prev = el.value;
+
+      const filtered = master.materials.filter(m =>
+        m.cat === cat && (!part || m.parts.includes(part))
+      );
+
+      el.innerHTML = '<option value="">材質</option>';
+      const seen = new Set();
+      filtered.forEach(m => {
+        if (!seen.has(m.val)) {
+          seen.add(m.val);
+          const opt = document.createElement('option');
+          opt.value = m.val;
+          opt.textContent = m.val;
+          el.appendChild(opt);
+        }
+      });
+
+      // 前の値が残っていれば復元
+      if (prev && seen.has(prev)) el.value = prev;
+    }
+
+    function updateNoteOptions(type, cat, part) {
+      const master = SURVEY_TYPES[type].master;
+      const el = $('metaNote');
+      const prev = el.value;
+
+      const filtered = master.notes.filter(n =>
+        n.cat === cat && (!part || n.parts.includes(part))
+      );
+
+      el.innerHTML = '<option value="">特記</option>';
+      const seen = new Set();
+      filtered.forEach(n => {
+        if (!seen.has(n.val)) {
+          seen.add(n.val);
+          const opt = document.createElement('option');
+          opt.value = n.val;
+          opt.textContent = n.val;
+          el.appendChild(opt);
+        }
+      });
+
+      if (prev && seen.has(prev)) el.value = prev;
+    }
+
+    function getMetadataFromForm() {
+      const survey = state.surveys.find(s => s.id === state.currentSurveyId);
+      if (!survey?.type || !SURVEY_TYPES[survey.type]) return null;
+
+      return {
+        category: getCurrentCategory(),
+        part: $('metaPart').value,
+        material: $('metaMaterial').value,
+        note: $('metaNote').value
+      };
+    }
+
+    function restoreLastMetadata(type) {
+      const m = state.lastMetadata;
+      if (!m) return;
+
+      if (m.part) {
+        $('metaPart').value = m.part;
+        onPartChange(type);
+      }
+      if (m.material) $('metaMaterial').value = m.material;
+      if (m.note) $('metaNote').value = m.note;
     }
 
     // ============================================
