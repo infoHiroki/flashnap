@@ -784,22 +784,6 @@
       text-align: center;
     }
 
-    /* テンプレート一覧 */
-    .template-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .template-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px;
-      background: var(--bg-secondary);
-      border-radius: 8px;
-    }
-
     /* 統計 */
     .stats {
       display: grid;
@@ -900,6 +884,42 @@
       border-color: var(--accent);
     }
 
+    .judgment-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .judgment-btn {
+      flex: 1;
+      padding: 10px 4px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .judgment-btn[data-val="A"] { background: #CCFFCC; color: #1a1a1a; }
+    .judgment-btn[data-val="B"] { background: #CCFFFF; color: #1a1a1a; }
+    .judgment-btn[data-val="C"] { background: #FFFFCC; color: #1a1a1a; }
+    .judgment-btn[data-val="D"] { background: #FFCCFF; color: #1a1a1a; }
+
+    .judgment-btn.active[data-val="A"] { background: #66DD66; border-color: #33AA33; }
+    .judgment-btn.active[data-val="B"] { background: #66DDDD; border-color: #33AAAA; }
+    .judgment-btn.active[data-val="C"] { background: #DDDD66; border-color: #AAAA33; }
+    .judgment-btn.active[data-val="D"] { background: #DD66DD; border-color: #AA33AA; }
+
+    [data-theme="dark"] .judgment-btn[data-val="A"] { background: #2a5a2a; color: #eaeaea; }
+    [data-theme="dark"] .judgment-btn[data-val="B"] { background: #2a5a5a; color: #eaeaea; }
+    [data-theme="dark"] .judgment-btn[data-val="C"] { background: #5a5a2a; color: #eaeaea; }
+    [data-theme="dark"] .judgment-btn[data-val="D"] { background: #5a2a5a; color: #eaeaea; }
+
+    [data-theme="dark"] .judgment-btn.active[data-val="A"] { background: #44AA44; border-color: #66DD66; }
+    [data-theme="dark"] .judgment-btn.active[data-val="B"] { background: #44AAAA; border-color: #66DDDD; }
+    [data-theme="dark"] .judgment-btn.active[data-val="C"] { background: #AAAA44; border-color: #DDDD66; }
+    [data-theme="dark"] .judgment-btn.active[data-val="D"] { background: #AA44AA; border-color: #DD66DD; }
+
     @media (orientation: landscape) and (max-height: 500px) {
       .metadata-section {
         padding: 0 8px 8px;
@@ -914,6 +934,10 @@
       .meta-tabs button {
         padding: 4px 2px;
         font-size: 0.75rem;
+      }
+      .judgment-btn {
+        padding: 6px 2px;
+        font-size: 0.85rem;
       }
     }
   </style>
@@ -991,6 +1015,12 @@
             <div class="metadata-row">
               <select id="metaNote"><option value="">特記</option></select>
             </div>
+            <div class="metadata-row judgment-row">
+              <button type="button" class="judgment-btn" data-val="A">A</button>
+              <button type="button" class="judgment-btn" data-val="B">B</button>
+              <button type="button" class="judgment-btn" data-val="C">C</button>
+              <button type="button" class="judgment-btn" data-val="D">D</button>
+            </div>
           </div>
           <div class="capture-buttons">
             <input type="file" id="fileInput" accept="image/*" capture="environment">
@@ -1042,12 +1072,6 @@
             <option value="kenzen">健全度調査票</option>
           </select>
         </div>
-        <div class="form-group">
-          <label for="templateSelect">テンプレート</label>
-          <select id="templateSelect">
-            <option value="">テンプレートなし</option>
-          </select>
-        </div>
         <details class="mt-16">
           <summary style="cursor: pointer; color: var(--text-secondary);">連番設定をカスタマイズ</summary>
           <div class="mt-16">
@@ -1062,29 +1086,9 @@
                 </select>
               </div>
               <div class="form-group">
-                <label for="surveyStartNum">開始番号</label>
-                <input type="number" id="surveyStartNum" placeholder="デフォルト" min="0">
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
                 <label for="surveyPrefix">プレフィックス</label>
                 <input type="text" id="surveyPrefix" placeholder="例: A-">
               </div>
-              <div class="form-group">
-                <label for="surveySeparator">区切り文字</label>
-                <select id="surveySeparator">
-                  <option value="">デフォルト</option>
-                  <option value="-">-（ハイフン）</option>
-                  <option value="_">_（アンダースコア）</option>
-                  <option value="">なし</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-group">
-              <label>
-                <input type="checkbox" id="surveyZeroPad"> ゼロ埋め
-              </label>
             </div>
           </div>
         </details>
@@ -1186,46 +1190,14 @@
 
         <!-- デフォルト連番設定 -->
         <h3 class="mt-16 mb-16">デフォルト連番設定</h3>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="defaultDigits">桁数</label>
-            <select id="defaultDigits">
-              <option value="2">2桁</option>
-              <option value="3" selected>3桁</option>
-              <option value="4">4桁</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="defaultStartNum">開始番号</label>
-            <input type="number" id="defaultStartNum" value="1" min="0">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="defaultPrefix">プレフィックス</label>
-            <input type="text" id="defaultPrefix" placeholder="なし">
-          </div>
-          <div class="form-group">
-            <label for="defaultSeparator">区切り文字</label>
-            <select id="defaultSeparator">
-              <option value="-">-（ハイフン）</option>
-              <option value="_">_（アンダースコア）</option>
-              <option value="">なし</option>
-            </select>
-          </div>
-        </div>
         <div class="form-group">
-          <label>
-            <input type="checkbox" id="defaultZeroPad" checked> ゼロ埋め
-          </label>
+          <label for="defaultDigits">桁数</label>
+          <select id="defaultDigits">
+            <option value="2">2桁</option>
+            <option value="3" selected>3桁</option>
+            <option value="4">4桁</option>
+          </select>
         </div>
-
-        <!-- テンプレート -->
-        <h3 class="mt-16 mb-16">テンプレート</h3>
-        <div class="template-list" id="templateList"></div>
-        <button class="btn btn-secondary mt-16" id="btnSaveTemplate" style="width: 100%;">
-          現在の階層をテンプレートとして保存
-        </button>
 
         <!-- 危険操作 -->
         <h3 class="mt-16 mb-16" style="color: var(--danger);">危険な操作</h3>
@@ -1373,14 +1345,10 @@
       surveys: [],
       nodes: [],
       records: [],
-      templates: [],
       settings: {
         darkMode: false,
         digits: 3,
-        startNum: 1,
-        zeroPad: true,
         prefix: '',
-        separator: '-',
         googleDrive: {
           enabled: false,
           accessToken: null,
@@ -1805,10 +1773,7 @@
 
     function formatNumber(num, settings) {
       const s = settings || state.settings;
-      let result = num.toString();
-      if (s.zeroPad) {
-        result = result.padStart(s.digits, '0');
-      }
+      const result = num.toString().padStart(s.digits, '0');
       return (s.prefix || '') + result;
     }
 
@@ -1817,7 +1782,7 @@
         r.surveyId === state.currentSurveyId && r.nodeId === nodeId
       );
       if (records.length === 0) {
-        return getSurveySettings().startNum;
+        return 1;
       }
       return Math.max(...records.map(r => r.number)) + 1;
     }
@@ -1825,13 +1790,11 @@
     function getSurveySettings() {
       const survey = state.surveys.find(s => s.id === state.currentSurveyId);
       const defaults = state.settings;
-      if (!survey || !survey.settings) return defaults;
+      if (!survey || !survey.settings) return { ...defaults, separator: '-' };
       return {
         digits: survey.settings.digits ?? defaults.digits,
-        startNum: survey.settings.startNum ?? defaults.startNum,
-        zeroPad: survey.settings.zeroPad ?? defaults.zeroPad,
         prefix: survey.settings.prefix ?? defaults.prefix,
-        separator: survey.settings.separator ?? defaults.separator
+        separator: '-'
       };
     }
 
@@ -2149,31 +2112,6 @@
       });
     }
 
-    function renderTemplateList() {
-      const container = $('templateList');
-      if (state.templates.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-secondary);">テンプレートがありません</p>';
-        return;
-      }
-
-      container.innerHTML = state.templates.map(t => `
-        <div class="template-item">
-          <span>${escapeHtml(t.name)}</span>
-          <button class="btn btn-icon btn-delete-template" data-id="${t.id}">🗑️</button>
-        </div>
-      `).join('');
-
-      container.querySelectorAll('.btn-delete-template').forEach(btn => {
-        btn.addEventListener('click', () => deleteTemplate(btn.dataset.id));
-      });
-    }
-
-    function renderTemplateSelect() {
-      const select = $('templateSelect');
-      select.innerHTML = '<option value="">テンプレートなし</option>' +
-        state.templates.map(t => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
-    }
-
     function escapeHtml(text) {
       const div = document.createElement('div');
       div.textContent = text;
@@ -2209,27 +2147,18 @@
         const survey = state.surveys.find(s => s.id === surveyId);
         $('surveyName').value = survey.name;
         $('surveyType').value = survey.type || '';
-        $('templateSelect').value = '';
         if (survey.settings) {
           $('surveyDigits').value = survey.settings.digits || '';
-          $('surveyStartNum').value = survey.settings.startNum ?? '';
           $('surveyPrefix').value = survey.settings.prefix || '';
-          $('surveySeparator').value = survey.settings.separator ?? '';
-          $('surveyZeroPad').checked = survey.settings.zeroPad ?? true;
         }
       } else {
         $('surveyName').value = '';
         $('surveyType').value = '';
-        $('templateSelect').value = '';
         $('surveyDigits').value = '';
-        $('surveyStartNum').value = '';
         $('surveyPrefix').value = '';
-        $('surveySeparator').value = '';
-        $('surveyZeroPad').checked = true;
       }
 
       modal.dataset.editId = surveyId || '';
-      renderTemplateSelect();
       modal.classList.add('active');
     }
 
@@ -2245,10 +2174,7 @@
 
       const settings = {};
       if ($('surveyDigits').value) settings.digits = parseInt($('surveyDigits').value);
-      if ($('surveyStartNum').value !== '') settings.startNum = parseInt($('surveyStartNum').value);
       if ($('surveyPrefix').value) settings.prefix = $('surveyPrefix').value;
-      if ($('surveySeparator').value !== '') settings.separator = $('surveySeparator').value;
-      settings.zeroPad = $('surveyZeroPad').checked;
 
       const surveyType = $('surveyType').value || null;
 
@@ -2270,12 +2196,6 @@
         };
         await dbPut('surveys', survey);
         state.surveys.push(survey);
-
-        // テンプレート適用
-        const templateId = $('templateSelect').value;
-        if (templateId) {
-          await applyTemplate(survey.id, templateId);
-        }
       }
 
       modal.classList.remove('active');
@@ -2658,17 +2578,22 @@
         const folderPath = names.join('/');
         const base64 = photo.dataUrl.split(',')[1];
 
-        zip.file(`${folderPath}/${record.filename}`, base64, { base64: true });
+        // 判定ありの場合はサブフォルダに振り分け
+        const judgment = record.metadata?.judgment;
+        const filePath = judgment
+          ? `${folderPath}/${judgment}/${record.filename}`
+          : `${folderPath}/${record.filename}`;
+        zip.file(filePath, base64, { base64: true });
       }
 
       // metadata.csv 生成（type付き調査の場合）
       if (survey?.type && SURVEY_TYPES[survey.type]) {
-        const csvRows = ['\uFEFFファイル名,カテゴリ,部位,材質,特記'];
+        const csvRows = ['\uFEFFファイル名,カテゴリ,部位,材質,特記,判定'];
         for (const record of records) {
           const m = record.metadata;
           if (m) {
             const escapeCsv = (v) => (v || '').replace(/"/g, '""');
-            csvRows.push(`"${escapeCsv(record.filename)}","${escapeCsv(m.category)}","${escapeCsv(m.part)}","${escapeCsv(m.material)}","${escapeCsv(m.note)}"`);
+            csvRows.push(`"${escapeCsv(record.filename)}","${escapeCsv(m.category)}","${escapeCsv(m.part)}","${escapeCsv(m.material)}","${escapeCsv(m.note)}","${escapeCsv(m.judgment)}"`);
           }
         }
         if (csvRows.length > 1) {
@@ -2715,6 +2640,14 @@
         });
 
         $('metaPart').addEventListener('change', () => onPartChange(type));
+
+        document.querySelectorAll('.judgment-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const wasActive = btn.classList.contains('active');
+            document.querySelectorAll('.judgment-btn').forEach(b => b.classList.remove('active'));
+            if (!wasActive) btn.classList.add('active');
+          });
+        });
 
         _metadataInitialized = true;
 
@@ -2822,7 +2755,8 @@
         category: getCurrentCategory(),
         part: $('metaPart').value,
         material: $('metaMaterial').value,
-        note: $('metaNote').value
+        note: $('metaNote').value,
+        judgment: document.querySelector('.judgment-btn.active')?.dataset.val || ''
       };
     }
 
@@ -2836,80 +2770,8 @@
       }
       if (m.material) $('metaMaterial').value = m.material;
       if (m.note) $('metaNote').value = m.note;
-    }
-
-    // ============================================
-    // テンプレート
-    // ============================================
-    async function saveAsTemplate() {
-      if (!state.currentSurveyId) {
-        alert('調査を選択してください');
-        return;
-      }
-
-      const surveyNodes = state.nodes.filter(n => n.surveyId === state.currentSurveyId);
-      if (surveyNodes.length === 0) {
-        alert('保存する階層がありません');
-        return;
-      }
-
-      const name = prompt('テンプレート名を入力してください');
-      if (!name) return;
-
-      // ノード構造をコピー（IDを除く）
-      const nodesCopy = surveyNodes.map(n => ({
-        name: n.name,
-        parentId: n.parentId,
-        order: n.order
-      }));
-
-      // parentIdをインデックスに変換
-      const idToIndex = new Map(surveyNodes.map((n, i) => [n.id, i]));
-      nodesCopy.forEach(n => {
-        n.parentIndex = n.parentId ? idToIndex.get(n.parentId) : null;
-        delete n.parentId;
-      });
-
-      const template = {
-        id: generateId(),
-        name,
-        nodes: nodesCopy,
-        createdAt: Date.now()
-      };
-
-      await dbPut('templates', template);
-      state.templates.push(template);
-      renderTemplateList();
-      renderTemplateSelect();
-    }
-
-    async function applyTemplate(surveyId, templateId) {
-      const template = state.templates.find(t => t.id === templateId);
-      if (!template) return;
-
-      const newIds = [];
-
-      for (const nodeDef of template.nodes) {
-        const node = {
-          id: generateId(),
-          surveyId,
-          parentId: nodeDef.parentIndex !== null ? newIds[nodeDef.parentIndex] : null,
-          name: nodeDef.name,
-          order: nodeDef.order,
-          createdAt: Date.now()
-        };
-        await dbPut('nodes', node);
-        state.nodes.push(node);
-        newIds.push(node.id);
-      }
-    }
-
-    async function deleteTemplate(templateId) {
-      if (!confirm('このテンプレートを削除しますか？')) return;
-      await dbDelete('templates', templateId);
-      state.templates = state.templates.filter(t => t.id !== templateId);
-      renderTemplateList();
-      renderTemplateSelect();
+      // 判定は毎回選び直すためクリア
+      document.querySelectorAll('.judgment-btn').forEach(b => b.classList.remove('active'));
     }
 
     // ============================================
@@ -2922,13 +2784,8 @@
       $('darkModeToggle').checked = s.darkMode;
       $('downloadToDeviceToggle').checked = s.downloadToDevice;
       $('defaultDigits').value = s.digits;
-      $('defaultStartNum').value = s.startNum;
-      $('defaultPrefix').value = s.prefix;
-      $('defaultSeparator').value = s.separator;
-      $('defaultZeroPad').checked = s.zeroPad;
 
       updateGoogleDriveUI();
-      renderTemplateList();
       modal.classList.add('active');
     }
 
@@ -2938,10 +2795,7 @@
       state.settings = {
         darkMode: $('darkModeToggle').checked,
         digits: parseInt($('defaultDigits').value),
-        startNum: parseInt($('defaultStartNum').value),
-        prefix: $('defaultPrefix').value,
-        separator: $('defaultSeparator').value,
-        zeroPad: $('defaultZeroPad').checked,
+        prefix: '',
         googleDrive,
         downloadToDevice
       };
@@ -2982,12 +2836,10 @@
       await dbClear('nodes');
       await dbClear('records');
       await dbClear('photos');
-      await dbClear('templates');
 
       state.surveys = [];
       state.nodes = [];
       state.records = [];
-      state.templates = [];
       state.currentSurveyId = null;
       state.currentNodeId = null;
       state.lastRecordId = null;
@@ -3007,7 +2859,6 @@
       state.surveys = await dbGetAll('surveys');
       state.nodes = await dbGetAll('nodes');
       state.records = await dbGetAll('records');
-      state.templates = await dbGetAll('templates');
 
       const savedSettings = await dbGet('settings', 'app');
       if (savedSettings) {
@@ -3095,7 +2946,6 @@
       // 設定モーダル
       $('btnCloseSettingsModal').addEventListener('click', () => $('settingsModal').classList.remove('active'));
       $('btnSaveSettings').addEventListener('click', saveSettings);
-      $('btnSaveTemplate').addEventListener('click', saveAsTemplate);
       $('btnUpdateApp').addEventListener('click', updateApp);
       $('btnResetData').addEventListener('click', resetData);
 
