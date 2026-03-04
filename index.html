@@ -2793,10 +2793,10 @@
 
         $('metaPart').addEventListener('change', () => onPartChange(type));
 
-        document.querySelectorAll('.judgment-btn').forEach(btn => {
+        $('metadataSection').querySelectorAll('.judgment-btn').forEach(btn => {
           btn.addEventListener('click', () => {
             const wasActive = btn.classList.contains('active');
-            document.querySelectorAll('.judgment-btn').forEach(b => b.classList.remove('active'));
+            $('metadataSection').querySelectorAll('.judgment-btn').forEach(b => b.classList.remove('active'));
             if (!wasActive) btn.classList.add('active');
           });
         });
@@ -3159,9 +3159,6 @@
       renderSurveyList();
     }
 
-    // ============================================
-    // 初期化
-    // ============================================
     // ============================================
     // 横持ち/縦持ち レイアウト切り替え
     // ============================================
