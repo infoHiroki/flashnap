@@ -120,11 +120,11 @@ test.describe('設定', () => {
     await page.waitForSelector('#settingsModal', { state: 'visible' });
 
     const toggle = page.locator('#downloadToDeviceToggle');
-    await expect(toggle).toBeChecked();
+    await expect(toggle).not.toBeChecked();
 
     // ラベル要素をクリック
     await page.locator('label:has(#downloadToDeviceToggle)').click();
-    await expect(toggle).not.toBeChecked();
+    await expect(toggle).toBeChecked();
   });
 
   test('Google Drive接続ボタンが表示される', async ({ page }) => {

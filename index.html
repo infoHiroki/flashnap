@@ -415,10 +415,11 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-start;
         height: 100%;
-        overflow: hidden;  /* はみ出し防止 */
+        overflow-y: auto;  /* スクロールで全て見える */
         min-width: 0;      /* flex子要素の縮小許可 */
+        padding: 8px 0;
       }
 
       .capture-section {
@@ -578,6 +579,29 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+
+    .recent-item {
+      cursor: pointer;
+    }
+
+    .judgment-badge {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+    .judgment-badge[data-val="A"] { background: #66DD66; color: #1a1a1a; }
+    .judgment-badge[data-val="B"] { background: #66DDDD; color: #1a1a1a; }
+    .judgment-badge[data-val="C"] { background: #DDDD66; color: #1a1a1a; }
+    .judgment-badge[data-val="D"] { background: #DD66DD; color: #1a1a1a; }
 
     /* モーダル */
     .modal-overlay {
@@ -920,6 +944,59 @@
     [data-theme="dark"] .judgment-btn.active[data-val="C"] { background: #AAAA44; border-color: #DDDD66; }
     [data-theme="dark"] .judgment-btn.active[data-val="D"] { background: #AA44AA; border-color: #DD66DD; }
 
+    /* メタデータ編集モーダル */
+    .meta-edit-photo {
+      width: 100%;
+      border-radius: 8px;
+      max-height: 200px;
+      object-fit: contain;
+      background: var(--bg-secondary);
+    }
+    .meta-edit-filename {
+      text-align: center;
+      margin: 8px 0;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    #metaEditModal .meta-tabs {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    #metaEditModal .meta-tabs button {
+      flex: 1;
+      min-width: 60px;
+      padding: 8px 4px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    #metaEditModal .meta-tabs button.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    #metaEditModal .metadata-row {
+      margin-bottom: 8px;
+    }
+    #metaEditModal .metadata-row select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      appearance: auto;
+    }
+    #metaEditModal .judgment-row {
+      display: flex;
+      gap: 6px;
+    }
+
     @media (orientation: landscape) and (max-height: 500px) {
       .metadata-section {
         padding: 0 8px 8px;
@@ -1134,6 +1211,42 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" id="btnCancelExport">閉じる</button>
         <button class="btn btn-primary" id="btnDownloadZip">ZIPダウンロード</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- メタデータ編集モーダル -->
+  <div class="modal-overlay" id="metaEditModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>メタデータ編集</h2>
+        <button class="btn btn-icon" id="btnCloseMetaEdit">✕</button>
+      </div>
+      <div class="modal-body">
+        <img id="metaEditPhoto" class="meta-edit-photo">
+        <div id="metaEditFilename" class="meta-edit-filename"></div>
+        <div class="metadata-row">
+          <div class="meta-tabs" id="metaEditCategoryTabs"></div>
+        </div>
+        <div class="metadata-row">
+          <select id="metaEditPart"><option value="">部位</option></select>
+        </div>
+        <div class="metadata-row">
+          <select id="metaEditMaterial"><option value="">材質</option></select>
+        </div>
+        <div class="metadata-row">
+          <select id="metaEditNote"><option value="">特記</option></select>
+        </div>
+        <div class="metadata-row judgment-row">
+          <button type="button" class="judgment-btn" id="metaEditJudgA" data-val="A">A</button>
+          <button type="button" class="judgment-btn" id="metaEditJudgB" data-val="B">B</button>
+          <button type="button" class="judgment-btn" id="metaEditJudgC" data-val="C">C</button>
+          <button type="button" class="judgment-btn" id="metaEditJudgD" data-val="D">D</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelMetaEdit">キャンセル</button>
+        <button class="btn btn-primary" id="btnSaveMetaEdit">保存</button>
       </div>
     </div>
   </div>
@@ -2093,10 +2206,16 @@
 
         const div = document.createElement('div');
         div.className = 'recent-item';
+        const judgment = record.metadata?.judgment;
+        const badgeHtml = judgment
+          ? `<div class="judgment-badge" data-val="${escapeHtml(judgment)}">${escapeHtml(judgment)}</div>`
+          : '';
         div.innerHTML = `
           <img src="${photo.dataUrl}" alt="${record.filename}">
+          ${badgeHtml}
           <div class="recent-item-name">${escapeHtml(record.filename)}</div>
         `;
+        div.addEventListener('click', () => openMetaEditModal(record.id));
         container.appendChild(div);
       });
     }
@@ -2515,11 +2634,17 @@
 
         const div = document.createElement('div');
         div.className = 'photo-item';
+        const judgment = record.metadata?.judgment;
+        const badgeHtml = judgment
+          ? `<div class="judgment-badge" data-val="${escapeHtml(judgment)}">${escapeHtml(judgment)}</div>`
+          : '';
         div.innerHTML = `
-          <img src="${photo.dataUrl}" alt="${record.filename}">
+          <img src="${photo.dataUrl}" alt="${record.filename}" style="cursor:pointer;" data-record-id="${record.id}">
           <button class="photo-item-delete" data-id="${record.id}">✕</button>
+          ${badgeHtml}
           <div class="photo-item-name">${escapeHtml(record.filename)}</div>
         `;
+        div.querySelector('img').addEventListener('click', () => openMetaEditModal(record.id));
         grid.appendChild(div);
       }
 
@@ -2764,6 +2889,157 @@
     }
 
     // ============================================
+    // メタデータ編集モーダル
+    // ============================================
+    let _metaEditRecordId = null;
+
+    async function openMetaEditModal(recordId) {
+      const record = state.records.find(r => r.id === recordId);
+      if (!record) return;
+
+      const survey = state.surveys.find(s => s.id === record.surveyId);
+      if (!survey?.type || !SURVEY_TYPES[survey.type]) return;
+
+      const photo = await dbGet('photos', recordId);
+      if (!photo) return;
+
+      _metaEditRecordId = recordId;
+      const master = SURVEY_TYPES[survey.type].master;
+      const meta = record.metadata || {};
+
+      // 写真とファイル名
+      $('metaEditPhoto').src = photo.dataUrl;
+      $('metaEditFilename').textContent = record.filename;
+
+      // カテゴリタブ生成
+      const tabsEl = $('metaEditCategoryTabs');
+      const cats = Object.keys(master.parts);
+      tabsEl.innerHTML = '';
+      cats.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.textContent = cat;
+        btn.dataset.cat = cat;
+        if (cat === (meta.category || cats[0])) btn.classList.add('active');
+        btn.addEventListener('click', () => {
+          Array.from(tabsEl.children).forEach(b => b.classList.toggle('active', b === btn));
+          metaEditUpdateParts(survey.type, cat);
+        });
+        tabsEl.appendChild(btn);
+      });
+
+      // 部位・材質・特記を設定
+      const activeCat = meta.category || cats[0];
+      metaEditUpdateParts(survey.type, activeCat);
+      if (meta.part) $('metaEditPart').value = meta.part;
+      metaEditUpdateMaterials(survey.type, activeCat, meta.part || '');
+      if (meta.material) $('metaEditMaterial').value = meta.material;
+      metaEditUpdateNotes(survey.type, activeCat, meta.part || '');
+      if (meta.note) $('metaEditNote').value = meta.note;
+
+      // 部位変更時に材質・特記を更新
+      $('metaEditPart').onchange = () => {
+        const cat = metaEditGetCategory();
+        const part = $('metaEditPart').value;
+        metaEditUpdateMaterials(survey.type, cat, part);
+        metaEditUpdateNotes(survey.type, cat, part);
+      };
+
+      // 判定ボタン
+      document.querySelectorAll('#metaEditModal .judgment-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === meta.judgment);
+        btn.onclick = () => {
+          const wasActive = btn.classList.contains('active');
+          document.querySelectorAll('#metaEditModal .judgment-btn').forEach(b => b.classList.remove('active'));
+          if (!wasActive) btn.classList.add('active');
+        };
+      });
+
+      $('metaEditModal').classList.add('active');
+    }
+
+    function metaEditGetCategory() {
+      const active = document.querySelector('#metaEditCategoryTabs button.active');
+      return active?.dataset.cat || '';
+    }
+
+    function metaEditUpdateParts(type, cat) {
+      const master = SURVEY_TYPES[type].master;
+      const el = $('metaEditPart');
+      const parts = master.parts[cat] || [];
+      el.innerHTML = '<option value="">部位</option>';
+      parts.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p;
+        opt.textContent = p;
+        el.appendChild(opt);
+      });
+      metaEditUpdateMaterials(type, cat, '');
+      metaEditUpdateNotes(type, cat, '');
+    }
+
+    function metaEditUpdateMaterials(type, cat, part) {
+      const master = SURVEY_TYPES[type].master;
+      const el = $('metaEditMaterial');
+      const prev = el.value;
+      const filtered = master.materials.filter(m => m.cat === cat && (!part || m.parts.includes(part)));
+      el.innerHTML = '<option value="">材質</option>';
+      const seen = new Set();
+      filtered.forEach(m => {
+        if (!seen.has(m.val)) {
+          seen.add(m.val);
+          const opt = document.createElement('option');
+          opt.value = m.val;
+          opt.textContent = m.val;
+          el.appendChild(opt);
+        }
+      });
+      if (prev && seen.has(prev)) el.value = prev;
+    }
+
+    function metaEditUpdateNotes(type, cat, part) {
+      const master = SURVEY_TYPES[type].master;
+      const el = $('metaEditNote');
+      const prev = el.value;
+      const filtered = master.notes.filter(n => n.cat === cat && (!part || n.parts.includes(part)));
+      el.innerHTML = '<option value="">特記</option>';
+      const seen = new Set();
+      filtered.forEach(n => {
+        if (!seen.has(n.val)) {
+          seen.add(n.val);
+          const opt = document.createElement('option');
+          opt.value = n.val;
+          opt.textContent = n.val;
+          el.appendChild(opt);
+        }
+      });
+      if (prev && seen.has(prev)) el.value = prev;
+    }
+
+    async function saveMetaEdit() {
+      if (!_metaEditRecordId) return;
+      const record = state.records.find(r => r.id === _metaEditRecordId);
+      if (!record) return;
+
+      record.metadata = {
+        category: metaEditGetCategory(),
+        part: $('metaEditPart').value,
+        material: $('metaEditMaterial').value,
+        note: $('metaEditNote').value,
+        judgment: document.querySelector('#metaEditModal .judgment-btn.active')?.dataset.val || ''
+      };
+
+      await dbPut('records', record);
+      $('metaEditModal').classList.remove('active');
+      _metaEditRecordId = null;
+
+      renderRecentList();
+      // エクスポートモーダルが開いていれば再描画
+      if ($('exportModal').classList.contains('active')) {
+        openExportModal();
+      }
+    }
+
+    // ============================================
     // 設定
     // ============================================
     function openSettingsModal() {
@@ -2930,6 +3206,11 @@
       $('btnCloseExportModal').addEventListener('click', () => $('exportModal').classList.remove('active'));
       $('btnCancelExport').addEventListener('click', () => $('exportModal').classList.remove('active'));
       $('btnDownloadZip').addEventListener('click', downloadZip);
+
+      // メタデータ編集モーダル
+      $('btnCloseMetaEdit').addEventListener('click', () => $('metaEditModal').classList.remove('active'));
+      $('btnCancelMetaEdit').addEventListener('click', () => $('metaEditModal').classList.remove('active'));
+      $('btnSaveMetaEdit').addEventListener('click', saveMetaEdit);
 
       // 設定モーダル
       $('btnCloseSettingsModal').addEventListener('click', () => $('settingsModal').classList.remove('active'));
