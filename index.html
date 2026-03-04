@@ -262,8 +262,8 @@
       align-items: center;
     }
 
-    /* 横向き専用ボタンは縦向きでは非表示 */
-    .capture-buttons-landscape {
+    /* 右サイドバー（横持ち時のみ表示） */
+    .sidebar-right {
       display: none;
     }
 
@@ -308,7 +308,7 @@
 
       #captureScreen {
         display: grid;
-        grid-template-columns: 180px minmax(0, 1fr) 100px;
+        grid-template-columns: 180px minmax(0, 1fr) 200px;
         grid-template-rows: 1fr;
         gap: 8px;
         height: calc(100dvh - 44px);
@@ -331,9 +331,8 @@
         grid-row: 1;
         display: flex;
         flex-direction: column;
-        max-height: 100%;
+        height: calc(100dvh - 44px);
         overflow-y: auto;
-        align-self: start;
         padding-left: 0;
       }
 
@@ -436,7 +435,9 @@
       }
 
       .capture-section .current-path {
-        display: none;
+        display: block;
+        font-size: 0.8rem;
+        margin-bottom: 4px;
       }
 
       .capture-section .current-count {
@@ -487,35 +488,56 @@
         font-size: 0.5rem;
       }
 
-      /* 右: カメラボタン */
-      .capture-buttons-landscape {
+      /* 右: メタデータ+カメラサイドバー */
+      .sidebar-right {
         grid-column: 3;
         grid-row: 1;
         display: flex;
         flex-direction: column;
+        height: calc(100dvh - 44px);
+        overflow-y: auto;
+        padding: 4px;
+        gap: 4px;
+      }
+
+      #metadataSidebarSlot {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+      }
+
+      #metadataSidebarSlot .metadata-section {
+        padding: 0;
+      }
+
+      .sidebar-right .camera-area {
+        display: flex;
+        flex-direction: column;
         align-items: center;
-        justify-content: center;
-        height: 100%;
-        position: relative;
+        gap: 6px;
+        padding: 4px 0;
+        flex-shrink: 0;
       }
 
-      /* 取り消しボタンは上部に絶対配置（カメラ位置に影響なし） */
-      .capture-buttons-landscape .btn-undo {
-        position: absolute;
-        top: 8px;
-        font-size: 0.75rem;
-        padding: 4px 8px;
-      }
-
-      .capture-buttons-landscape .btn-capture {
-        width: 80px;
-        height: 80px;
-        font-size: 2rem;
+      .sidebar-right .camera-area .btn-capture {
+        width: 70px;
+        height: 70px;
+        font-size: 1.8rem;
         border-radius: 50%;
         background: var(--accent);
         color: white;
         border: none;
         cursor: pointer;
+      }
+
+      .sidebar-right .camera-area .btn-undo {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+      }
+
+      /* 横持ち時は中央のメタデータを非表示（右サイドバーに移動） */
+      .center-content .metadata-section {
+        display: none;
       }
 
       /* 横持ち時のモーダル対応 */
@@ -1005,22 +1027,23 @@
 
     @media (orientation: landscape) and (max-height: 500px) {
       .metadata-section {
-        padding: 0 8px 8px;
+        padding: 0 4px 4px;
       }
       .metadata-row {
-        margin-bottom: 4px;
+        margin-bottom: 3px;
       }
       .metadata-row select {
-        padding: 6px 8px;
-        font-size: 0.8rem;
-      }
-      .meta-tabs button {
-        padding: 4px 2px;
+        padding: 4px 6px;
         font-size: 0.75rem;
       }
+      .meta-tabs button {
+        padding: 3px 2px;
+        font-size: 0.7rem;
+        min-width: auto;
+      }
       .judgment-btn {
-        padding: 6px 2px;
-        font-size: 0.85rem;
+        padding: 4px 2px;
+        font-size: 0.8rem;
       }
     }
   </style>
@@ -1124,14 +1147,17 @@
 
       </div>
 
-      <!-- 横向き専用カメラボタン -->
-      <div class="capture-buttons-landscape">
-        <button class="btn btn-secondary btn-undo hidden" id="btnUndoLandscape">
-          ↩️ 取り消し
-        </button>
-        <button class="btn btn-primary btn-capture" id="btnCaptureLandscape">
-          <span>📷</span>
-        </button>
+      <!-- 右サイドバー（横持ち時：メタデータ+カメラ） -->
+      <div class="sidebar-right" id="sidebarRight">
+        <div id="metadataSidebarSlot"></div>
+        <div class="camera-area">
+          <button class="btn btn-primary btn-capture" id="btnCaptureSidebar">
+            <span>📷</span>
+          </button>
+          <button class="btn btn-secondary btn-undo hidden" id="btnUndoSidebar">
+            ↩️ 取り消し
+          </button>
+        </div>
       </div>
     </section>
   </main>
@@ -2018,12 +2044,7 @@
       const children = surveyNodes.filter(n => n.parentId === state.currentNodeId);
 
       if (children.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-state-icon">📁</div>
-            <p>階層がありません</p>
-          </div>
-        `;
+        container.innerHTML = '';
         return;
       }
 
@@ -2182,7 +2203,7 @@
 
       // 取り消しボタン（縦向き・横向き両方を同期）
       $('btnUndo').classList.toggle('hidden', !state.lastRecordId);
-      $('btnUndoLandscape').classList.toggle('hidden', !state.lastRecordId);
+      $('btnUndoSidebar').classList.toggle('hidden', !state.lastRecordId);
 
       // メタデータセクション表示制御
       if (survey?.type && SURVEY_TYPES[survey.type]) {
@@ -2191,6 +2212,9 @@
       } else {
         $('metadataSection').classList.add('hidden');
       }
+
+      // 横持ち/縦持ちでメタデータの配置を切り替え
+      handleOrientationLayout();
     }
 
     async function renderRecentList() {
@@ -3138,6 +3162,33 @@
     // ============================================
     // 初期化
     // ============================================
+    // ============================================
+    // 横持ち/縦持ち レイアウト切り替え
+    // ============================================
+    const landscapeQuery = window.matchMedia('(orientation: landscape) and (max-height: 500px)');
+
+    function handleOrientationLayout() {
+      const metadataSection = $('metadataSection');
+      const sidebarSlot = $('metadataSidebarSlot');
+      if (!metadataSection || !sidebarSlot) return;
+
+      if (landscapeQuery.matches) {
+        // 横持ち: メタデータを右サイドバーに移動
+        if (metadataSection.parentElement !== sidebarSlot) {
+          sidebarSlot.appendChild(metadataSection);
+        }
+      } else {
+        // 縦持ち: メタデータを撮影セクション内に戻す
+        const captureSection = document.querySelector('.capture-section');
+        const captureButtons = captureSection?.querySelector('.capture-buttons');
+        if (captureSection && metadataSection.parentElement !== captureSection) {
+          captureSection.insertBefore(metadataSection, captureButtons);
+        }
+      }
+    }
+
+    landscapeQuery.addEventListener('change', handleOrientationLayout);
+
     async function init() {
       await initDB();
 
@@ -3260,7 +3311,7 @@
 
       // 撮影
       $('btnCapture').addEventListener('click', () => $('fileInput').click());
-      $('btnCaptureLandscape').addEventListener('click', () => $('fileInput').click());
+      $('btnCaptureSidebar').addEventListener('click', () => $('fileInput').click());
       $('fileInput').addEventListener('change', (e) => {
         if (e.target.files[0]) {
           handleCapture(e.target.files[0]);
@@ -3268,7 +3319,7 @@
         }
       });
       $('btnUndo').addEventListener('click', undoCapture);
-      $('btnUndoLandscape').addEventListener('click', undoCapture);
+      $('btnUndoSidebar').addEventListener('click', undoCapture);
 
       // モーダル外クリックで閉じる
       document.querySelectorAll('.modal-overlay').forEach(overlay => {
