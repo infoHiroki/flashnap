@@ -1079,7 +1079,7 @@
               <div class="form-group">
                 <label for="surveyDigits">桁数</label>
                 <select id="surveyDigits">
-                  <option value="">デフォルト</option>
+                  <option value="">3桁（デフォルト）</option>
                   <option value="2">2桁</option>
                   <option value="3">3桁</option>
                   <option value="4">4桁</option>
@@ -1186,17 +1186,6 @@
             <input type="checkbox" id="downloadToDeviceToggle" checked>
             <span class="toggle-slider"></span>
           </label>
-        </div>
-
-        <!-- デフォルト連番設定 -->
-        <h3 class="mt-16 mb-16">デフォルト連番設定</h3>
-        <div class="form-group">
-          <label for="defaultDigits">桁数</label>
-          <select id="defaultDigits">
-            <option value="2">2桁</option>
-            <option value="3" selected>3桁</option>
-            <option value="4">4桁</option>
-          </select>
         </div>
 
         <!-- 危険操作 -->
@@ -2783,7 +2772,6 @@
 
       $('darkModeToggle').checked = s.darkMode;
       $('downloadToDeviceToggle').checked = s.downloadToDevice;
-      $('defaultDigits').value = s.digits;
 
       updateGoogleDriveUI();
       modal.classList.add('active');
@@ -2794,7 +2782,7 @@
       const downloadToDevice = state.settings.downloadToDevice; // 保持
       state.settings = {
         darkMode: $('darkModeToggle').checked,
-        digits: parseInt($('defaultDigits').value),
+        digits: 3,
         prefix: '',
         googleDrive,
         downloadToDevice
