@@ -454,8 +454,8 @@
         display: block;
         margin-top: 8px;
         width: 100%;
-        max-width: 100%;   /* noneではなく100%に */
-        overflow: hidden;  /* はみ出し防止 */
+        max-width: 100%;
+        overflow: visible;
       }
 
       .recent-section h3 {
@@ -479,6 +479,12 @@
 
       .recent-item-name {
         font-size: 0.55rem;
+      }
+
+      .recent-item .judgment-badge {
+        width: 14px;
+        height: 14px;
+        font-size: 0.5rem;
       }
 
       /* 右: カメラボタン */
@@ -2187,8 +2193,10 @@
       }
     }
 
-    function renderRecentList() {
+    async function renderRecentList() {
       const container = $('recentList');
+      const survey = state.surveys.find(s => s.id === state.currentSurveyId);
+      const hasMetadata = survey?.type && SURVEY_TYPES[survey.type];
       const surveyRecords = state.records
         .filter(r => r.surveyId === state.currentSurveyId)
         .sort((a, b) => b.createdAt - a.createdAt)
@@ -2200,9 +2208,9 @@
       }
 
       container.innerHTML = '';
-      surveyRecords.forEach(async record => {
+      for (const record of surveyRecords) {
         const photo = await dbGet('photos', record.id);
-        if (!photo) return;
+        if (!photo) continue;
 
         const div = document.createElement('div');
         div.className = 'recent-item';
@@ -2215,9 +2223,11 @@
           ${badgeHtml}
           <div class="recent-item-name">${escapeHtml(record.filename)}</div>
         `;
-        div.addEventListener('click', () => openMetaEditModal(record.id));
+        if (hasMetadata) {
+          div.addEventListener('click', () => openMetaEditModal(record.id));
+        }
         container.appendChild(div);
-      });
+      }
     }
 
     function escapeHtml(text) {
@@ -2609,6 +2619,8 @@
     // ============================================
     async function openExportModal() {
       const modal = $('exportModal');
+      const survey = state.surveys.find(s => s.id === state.currentSurveyId);
+      const hasMetadata = survey?.type && SURVEY_TYPES[survey.type];
       const records = state.records.filter(r => r.surveyId === state.currentSurveyId);
       const nodes = state.nodes.filter(n => n.surveyId === state.currentSurveyId);
 
@@ -2639,12 +2651,14 @@
           ? `<div class="judgment-badge" data-val="${escapeHtml(judgment)}">${escapeHtml(judgment)}</div>`
           : '';
         div.innerHTML = `
-          <img src="${photo.dataUrl}" alt="${record.filename}" style="cursor:pointer;" data-record-id="${record.id}">
+          <img src="${photo.dataUrl}" alt="${record.filename}"${hasMetadata ? ' style="cursor:pointer;"' : ''}>
           <button class="photo-item-delete" data-id="${record.id}">✕</button>
           ${badgeHtml}
           <div class="photo-item-name">${escapeHtml(record.filename)}</div>
         `;
-        div.querySelector('img').addEventListener('click', () => openMetaEditModal(record.id));
+        if (hasMetadata) {
+          div.querySelector('img').addEventListener('click', () => openMetaEditModal(record.id));
+        }
         grid.appendChild(div);
       }
 
@@ -3029,6 +3043,14 @@
       };
 
       await dbPut('records', record);
+
+      // Google Driveに再アップロード（有効な場合）
+      if (state.settings.googleDrive.enabled) {
+        const survey = state.surveys.find(s => s.id === record.surveyId);
+        const surveyName = survey?.name || '調査';
+        await addToSyncQueue(record.id, record.filename, surveyName);
+      }
+
       $('metaEditModal').classList.remove('active');
       _metaEditRecordId = null;
 

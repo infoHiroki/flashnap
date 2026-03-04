@@ -10,7 +10,7 @@ export default defineConfig({
   webServer: {
     command: 'npx serve . -l 8787',
     port: 8787,
-    reuseExistingServer: false,
+    reuseExistingServer: !process.env.CI,
   },
   projects: [
     {
