@@ -21,7 +21,7 @@ async function setupKenzenSurvey(page, name = '健全度テスト') {
 }
 
 async function addNode(page, name) {
-  await page.click('#btnAddNodeLandscape');
+  await page.click('#btnAddNode');
   await page.fill('#nodeName', name);
   await page.click('#btnSaveNode');
   await page.waitForSelector(`.tree-node:has-text("${name}")`);
@@ -263,7 +263,7 @@ test.describe('3カラムレイアウト', () => {
     await setupKenzenSurvey(page);
     await addNode(page, '本館');
 
-    await expect(page.locator('.landscape-sidebar')).toBeVisible();
+    await expect(page.locator('.sidebar-left')).toBeVisible();
     await expect(page.locator('.tree-survey')).toBeVisible();
     await expect(page.locator('.tree-node').filter({ hasText: '本館' })).toBeVisible();
   });

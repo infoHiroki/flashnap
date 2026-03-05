@@ -179,7 +179,7 @@
     }
 
     /* 左: ツリーサイドバー */
-    .landscape-sidebar {
+    .sidebar-left {
       grid-column: 1;
       grid-row: 1;
       display: flex;
@@ -188,7 +188,7 @@
       overflow-y: auto;
     }
 
-    .landscape-tree {
+    .tree-view {
       flex: 1;
       overflow-y: auto;
     }
@@ -237,7 +237,29 @@
       flex-shrink: 0;
     }
 
-    .btn-add-node-landscape {
+    .tree-item-actions {
+      display: none;
+      gap: 2px;
+    }
+
+    .tree-item.selected .tree-item-actions {
+      display: flex;
+    }
+
+    .tree-item-actions .btn-icon {
+      font-size: 0.7rem;
+      padding: 1px 3px;
+      opacity: 0.6;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    .tree-item-actions .btn-icon:hover {
+      opacity: 1;
+    }
+
+    .btn-add-node {
       margin-top: 8px;
       padding: 6px 8px;
       font-size: 0.8rem;
@@ -863,9 +885,9 @@
       <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none;">
 
       <!-- 左: ツリーサイドバー -->
-      <div class="landscape-sidebar" id="landscapeSidebar">
-        <div class="landscape-tree" id="landscapeTree"></div>
-        <button class="btn btn-secondary btn-add-node-landscape" id="btnAddNodeLandscape">
+      <div class="sidebar-left" id="sidebarLeft">
+        <div class="tree-view" id="treeView"></div>
+        <button class="btn btn-secondary btn-add-node" id="btnAddNode">
           + 階層追加
         </button>
       </div>
@@ -1759,9 +1781,9 @@
       });
     }
 
-    // ツリー表示（調査一覧 + 階層）
-    function renderLandscapeTree() {
-      const container = $('landscapeTree');
+    // 左サイドバー: ツリー表示
+    function renderTree() {
+      const container = $('treeView');
       let html = '';
 
       // 調査一覧
@@ -1790,6 +1812,10 @@
             let nodeHtml = `
               <div class="tree-item tree-node ${isSelected ? 'selected' : ''}" data-node-id="${node.id}" style="padding-left: ${indent}px;">
                 <span class="tree-item-name">📁 ${escapeHtml(node.name)}</span>
+                <span class="tree-item-actions">
+                  <button class="btn-icon btn-edit-node" data-id="${node.id}">✏️</button>
+                  <button class="btn-icon btn-delete-node" data-id="${node.id}">🗑️</button>
+                </span>
                 <span class="tree-item-count">${photoCount}</span>
               </div>
             `;
@@ -1821,7 +1847,7 @@
             // 現在の調査をタップ → ルート階層を選択
             state.currentNodeId = null;
             state.lastRecordId = null;
-            renderLandscapeTree();
+            renderTree();
             renderCaptureSection();
           }
         });
@@ -1829,17 +1855,31 @@
 
       // 階層クリックイベント
       container.querySelectorAll('.tree-node').forEach(item => {
-        item.addEventListener('click', () => {
-          selectNodeForCapture(item.dataset.nodeId);
+        item.addEventListener('click', (e) => {
+          if (e.target.closest('.btn-icon')) return;
+          navigateToNode(item.dataset.nodeId);
+        });
+      });
+
+      // 階層の編集・削除
+      container.querySelectorAll('.btn-edit-node').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openNodeModal(btn.dataset.id);
+        });
+      });
+      container.querySelectorAll('.btn-delete-node').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteNode(btn.dataset.id);
         });
       });
     }
 
-    // 横持ち時：階層を選択して撮影対象に設定
-    function selectNodeForCapture(nodeId) {
+    function navigateToNode(nodeId) {
       state.currentNodeId = nodeId;
       state.lastRecordId = null;
-      renderLandscapeTree();
+      renderTree();
       renderCaptureSection();
     }
 
@@ -1933,7 +1973,7 @@
       // ヘッダーはFlashnapのまま、戻るボタンも非表示（パンくずで戻れる）
 
       showScreen('capture');
-      renderLandscapeTree();
+      renderTree();
       renderCaptureSection();
       renderRecentList();
     }
@@ -2034,13 +2074,6 @@
     // ============================================
     // 階層操作
     // ============================================
-    function navigateToNode(nodeId) {
-      state.currentNodeId = nodeId;
-      state.lastRecordId = null;
-      renderLandscapeTree();
-      renderCaptureSection();
-    }
-
     function openNodeModal(nodeId = null) {
       const modal = $('nodeModal');
       const isEdit = !!nodeId;
@@ -2091,7 +2124,7 @@
       }
 
       modal.classList.remove('active');
-      renderLandscapeTree();
+      renderTree();
     }
 
     async function deleteNode(nodeId) {
@@ -2126,8 +2159,9 @@
         state.currentNodeId = node?.parentId || null;
       }
 
-      renderLandscapeTree();
+      renderTree();
       renderCaptureSection();
+      renderRecentList();
     }
 
     // ============================================
@@ -2236,7 +2270,7 @@
       }
 
       state.lastRecordId = record.id;
-      renderLandscapeTree();
+      renderTree();
       renderCaptureSection();
       renderRecentList();
     }
@@ -2288,7 +2322,7 @@
       state.records = state.records.filter(r => r.id !== recordId);
       state.lastRecordId = null;
 
-      renderLandscapeTree();
+      renderTree();
       renderCaptureSection();
       renderRecentList();
     }
@@ -2894,7 +2928,7 @@
       $('btnSaveSurvey').addEventListener('click', saveSurvey);
 
       // 階層モーダル
-      $('btnAddNodeLandscape').addEventListener('click', () => openNodeModal());
+      $('btnAddNode').addEventListener('click', () => openNodeModal());
       $('btnCloseNodeModal').addEventListener('click', () => $('nodeModal').classList.remove('active'));
       $('btnCancelNode').addEventListener('click', () => $('nodeModal').classList.remove('active'));
       $('btnSaveNode').addEventListener('click', saveNode);

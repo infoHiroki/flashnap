@@ -69,7 +69,7 @@ test.describe('階層管理', () => {
   });
 
   test('階層を追加できる', async ({ page }) => {
-    await page.click('#btnAddNodeLandscape');
+    await page.click('#btnAddNode');
     await expect(page.locator('#nodeModal')).toBeVisible();
 
     await page.fill('#nodeName', '本館');
@@ -80,7 +80,7 @@ test.describe('階層管理', () => {
 
   test('階層をネストできる', async ({ page }) => {
     // 親階層作成
-    await page.click('#btnAddNodeLandscape');
+    await page.click('#btnAddNode');
     await page.fill('#nodeName', '本館');
     await page.click('#btnSaveNode');
     await page.waitForSelector('.tree-node');
@@ -89,7 +89,7 @@ test.describe('階層管理', () => {
     await page.locator('.tree-node').filter({ hasText: '本館' }).click();
 
     // 子階層作成
-    await page.click('#btnAddNodeLandscape');
+    await page.click('#btnAddNode');
     await page.fill('#nodeName', '1階');
     await page.click('#btnSaveNode');
 
