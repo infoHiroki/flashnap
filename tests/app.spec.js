@@ -50,7 +50,7 @@ test.describe('調査管理', () => {
     await page.locator('.survey-item').filter({ hasText: '撮影テスト' }).locator('.survey-info').click();
 
     await expect(page.locator('#captureScreen')).toBeVisible();
-    await expect(page.locator('#btnCapture')).toBeVisible();
+    await expect(page.locator('#btnCaptureSidebar')).toBeVisible();
   });
 });
 
@@ -69,31 +69,31 @@ test.describe('階層管理', () => {
   });
 
   test('階層を追加できる', async ({ page }) => {
-    await page.click('#btnAddNode');
+    await page.click('#btnAddNodeLandscape');
     await expect(page.locator('#nodeModal')).toBeVisible();
 
     await page.fill('#nodeName', '本館');
     await page.click('#btnSaveNode');
 
-    await expect(page.locator('.node-item').filter({ hasText: '本館' })).toBeVisible();
+    await expect(page.locator('.tree-node').filter({ hasText: '本館' })).toBeVisible();
   });
 
   test('階層をネストできる', async ({ page }) => {
     // 親階層作成
-    await page.click('#btnAddNode');
+    await page.click('#btnAddNodeLandscape');
     await page.fill('#nodeName', '本館');
     await page.click('#btnSaveNode');
-    await page.waitForSelector('.node-item');
+    await page.waitForSelector('.tree-node');
 
-    // 親階層に入る
-    await page.locator('.node-item').filter({ hasText: '本館' }).locator('.node-name').click();
+    // 親階層に入る（ツリーで選択）
+    await page.locator('.tree-node').filter({ hasText: '本館' }).click();
 
     // 子階層作成
-    await page.click('#btnAddNode');
+    await page.click('#btnAddNodeLandscape');
     await page.fill('#nodeName', '1階');
     await page.click('#btnSaveNode');
 
-    await expect(page.locator('.node-item').filter({ hasText: '1階' })).toBeVisible();
+    await expect(page.locator('.tree-node').filter({ hasText: '1階' })).toBeVisible();
   });
 });
 

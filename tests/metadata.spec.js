@@ -21,14 +21,14 @@ async function setupKenzenSurvey(page, name = '健全度テスト') {
 }
 
 async function addNode(page, name) {
-  await page.click('#btnAddNode');
+  await page.click('#btnAddNodeLandscape');
   await page.fill('#nodeName', name);
   await page.click('#btnSaveNode');
-  await page.waitForSelector(`.node-item:has-text("${name}")`);
+  await page.waitForSelector(`.tree-node:has-text("${name}")`);
 }
 
 async function navigateToNode(page, name) {
-  await page.locator('.node-item').filter({ hasText: name }).locator('.node-name').click();
+  await page.locator('.tree-node').filter({ hasText: name }).click();
 }
 
 async function simulateCapture(page) {
@@ -141,7 +141,7 @@ test.describe('撮影とメタデータ保存', () => {
     await expect(page.locator('#currentCount')).toContainText('1枚撮影済み');
 
     page.on('dialog', dialog => dialog.accept());
-    await page.click('#btnUndo');
+    await page.click('#btnUndoSidebar');
     await expect(page.locator('#currentCount')).toContainText('0枚撮影済み');
     await expect(page.locator('#currentNumber')).toContainText('001');
   });
@@ -251,55 +251,31 @@ test.describe('エクスポート（健全度調査票）', () => {
   });
 });
 
-// ── 横持ちレイアウト ──
+// ── 3カラムレイアウト ──
 
-test.describe('横持ちレイアウト', () => {
-  test('横持ちでメタデータが右サイドバーに移動する', async ({ page }) => {
+test.describe('3カラムレイアウト', () => {
+  test('メタデータが右サイドバーに表示される', async ({ page }) => {
     await setupKenzenSurvey(page);
-
-    // 横持ち (width > height, height < 500)
-    await page.setViewportSize({ width: 800, height: 400 });
-
-    // メタデータが右サイドバー内に移動
-    await expect(page.locator('#metadataSidebarSlot #metadataSection')).toBeVisible({ timeout: 3000 });
+    await expect(page.locator('#metadataSidebarSlot #metadataSection')).toBeVisible();
   });
 
   test('左サイドバーに調査ツリーが表示される', async ({ page }) => {
     await setupKenzenSurvey(page);
     await addNode(page, '本館');
 
-    await page.setViewportSize({ width: 800, height: 400 });
-
     await expect(page.locator('.landscape-sidebar')).toBeVisible();
     await expect(page.locator('.tree-survey')).toBeVisible();
     await expect(page.locator('.tree-node').filter({ hasText: '本館' })).toBeVisible();
   });
 
-  test('縦持ちに戻るとメタデータが中央に戻る', async ({ page }) => {
+  test('右サイドバーにカメラボタンが表示される', async ({ page }) => {
     await setupKenzenSurvey(page);
-
-    // 横持ち → 縦持ち
-    await page.setViewportSize({ width: 800, height: 400 });
-    await expect(page.locator('#metadataSidebarSlot #metadataSection')).toBeVisible({ timeout: 3000 });
-
-    await page.setViewportSize({ width: 400, height: 800 });
-
-    // メタデータが capture-section 内に戻る
-    await expect(page.locator('.capture-section #metadataSection')).toBeVisible({ timeout: 3000 });
-  });
-
-  test('横持ちで右サイドバーのカメラボタンが表示される', async ({ page }) => {
-    await setupKenzenSurvey(page);
-    await page.setViewportSize({ width: 800, height: 400 });
-
     await expect(page.locator('#btnCaptureSidebar')).toBeVisible();
   });
 
-  test('横持ちでツリーから階層を選択できる', async ({ page }) => {
+  test('ツリーから階層を選択できる', async ({ page }) => {
     await setupKenzenSurvey(page);
     await addNode(page, '本館');
-
-    await page.setViewportSize({ width: 800, height: 400 });
 
     // ツリーの階層をクリック
     await page.locator('.tree-node').filter({ hasText: '本館' }).click();

@@ -115,6 +115,11 @@
 
     /* メインコンテンツ */
     .main {
+      padding: 0;
+    }
+
+    /* 調査選択画面用 */
+    #surveyScreen {
       padding: 16px;
       max-width: 600px;
       margin: 0 auto;
@@ -163,428 +168,154 @@
       gap: 4px;
     }
 
-    /* 階層表示 */
-    .hierarchy-section {
-      margin-bottom: 24px;
+    /* 撮影画面: 3カラムレイアウト */
+    #captureScreen {
+      display: grid;
+      grid-template-columns: 180px minmax(0, 1fr) 200px;
+      grid-template-rows: 1fr;
+      gap: 8px;
+      height: calc(100dvh - 44px);
+      align-items: start;
     }
 
-    .breadcrumbs {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      align-items: center;
-      margin-bottom: 16px;
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-    }
-
-    .breadcrumb-item {
-      cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 4px;
-      background: var(--bg-secondary);
-    }
-
-    .breadcrumb-item:hover {
-      background: var(--bg-tertiary);
-    }
-
-    .breadcrumb-separator {
-      color: var(--text-secondary);
-    }
-
-    .node-list {
+    /* 左: ツリーサイドバー */
+    .landscape-sidebar {
+      grid-column: 1;
+      grid-row: 1;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      height: calc(100dvh - 44px);
+      overflow-y: auto;
     }
 
-    .node-item {
+    .landscape-tree {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .tree-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 16px;
-      background: var(--bg-secondary);
-      border-radius: 8px;
-      border: 1px solid var(--border);
+      padding: 6px 8px;
+      font-size: 0.8rem;
       cursor: pointer;
-      transition: background 0.2s;
+      border-left: 3px solid transparent;
+      transition: background 0.15s;
     }
 
-    .node-item:hover {
+    .tree-item:hover {
       background: var(--bg-tertiary);
     }
 
-    .node-name {
-      font-weight: 500;
+    .tree-item.selected {
+      background: var(--bg-tertiary);
+      border-left-color: var(--accent);
     }
 
-    .node-count {
+    .tree-survey {
+      font-weight: 600;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tree-node {
+      font-size: 0.75rem;
+    }
+
+    .tree-item-name {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tree-item-count {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      margin-left: 4px;
+      flex-shrink: 0;
+    }
+
+    .btn-add-node-landscape {
+      margin-top: 8px;
+      padding: 6px 8px;
       font-size: 0.8rem;
-      color: var(--text-secondary);
+      width: 100%;
     }
 
-    .node-actions {
-      display: flex;
-      gap: 4px;
-    }
-
-    /* 撮影セクション */
-    .capture-section {
-      text-align: center;
-      padding: 24px 0;
-    }
-
-    .current-number {
-      font-size: 4rem;
-      font-weight: 700;
-      color: var(--accent);
-      margin-bottom: 8px;
-    }
-
-    .current-path {
-      font-size: 0.9rem;
-      color: var(--text-secondary);
-      margin-bottom: 8px;
-      word-break: break-all;
-    }
-
-    .current-count {
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-      margin-bottom: 24px;
-    }
-
-    .capture-buttons {
+    /* 中央: 撮影セクション */
+    .center-content {
+      grid-column: 2;
+      grid-row: 1;
       display: flex;
       flex-direction: column;
-      gap: 12px;
       align-items: center;
+      justify-content: flex-start;
+      height: 100%;
+      overflow-y: auto;
+      min-width: 0;
+      padding: 8px 0;
     }
 
-    /* 右サイドバー（横持ち時のみ表示） */
-    .sidebar-right {
-      display: none;
-    }
-
-    .btn-capture {
-      width: 120px;
-      height: 120px;
-      border-radius: 50%;
-      font-size: 3rem;
+    .capture-section {
+      padding: 0;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
     }
 
-    .btn-undo {
-      padding: 12px 24px;
+    .current-number {
+      font-size: 4.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 4px;
     }
 
-    #fileInput {
-      display: none;
+    .current-path {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+      word-break: break-all;
     }
 
-    /* 横持ち専用サイドバー（デフォルト非表示） */
-    .landscape-sidebar {
-      display: none;
-    }
-
-    /* 横持ち時のレイアウト */
-    @media (orientation: landscape) and (max-height: 500px) {
-      body {
-        overflow: hidden;
-      }
-
-      .header {
-        padding: 6px 16px;
-      }
-
-      .main {
-        padding: 4px 8px;
-        max-width: none;
-        overflow: hidden;
-      }
-
-      #captureScreen {
-        display: grid;
-        grid-template-columns: 180px minmax(0, 1fr) 200px;
-        grid-template-rows: 1fr;
-        gap: 8px;
-        height: calc(100dvh - 44px);
-        align-items: start;
-      }
-
-      /* 横向き時はパンくず非表示（左サイドバーで代替） */
-      .breadcrumbs {
-        display: none;
-      }
-
-      /* 縦向き用の階層セクションは非表示 */
-      .hierarchy-section {
-        display: none;
-      }
-
-      /* 左: ツリーサイドバー */
-      .landscape-sidebar {
-        grid-column: 1;
-        grid-row: 1;
-        display: flex;
-        flex-direction: column;
-        height: calc(100dvh - 44px);
-        overflow-y: auto;
-        padding-left: 0;
-      }
-
-      .landscape-tree {
-        flex: 1;
-        overflow-y: auto;
-      }
-
-      /* ツリーアイテム */
-      .tree-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 6px 8px;
-        font-size: 0.8rem;
-        cursor: pointer;
-        border-left: 3px solid transparent;
-        transition: background 0.15s;
-      }
-
-      .tree-item:hover {
-        background: var(--bg-tertiary);
-      }
-
-      .tree-item.selected {
-        background: var(--bg-tertiary);
-        border-left-color: var(--accent);
-      }
-
-      .tree-survey {
-        font-weight: 600;
-        background: var(--bg-secondary);
-        border-bottom: 1px solid var(--border);
-      }
-
-      .tree-node {
-        font-size: 0.75rem;
-      }
-
-      .tree-item-name {
-        flex: 1;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .tree-item-count {
-        font-size: 0.7rem;
-        color: var(--text-secondary);
-        margin-left: 4px;
-        flex-shrink: 0;
-      }
-
-      .tree-item-actions {
-        display: none;
-      }
-
-      .tree-item-actions .btn-icon {
-        font-size: 0.75rem;
-        padding: 2px 4px;
-        opacity: 0.6;
-      }
-
-      .tree-item-actions .btn-icon:hover {
-        opacity: 1;
-      }
-
-      .btn-add-node-landscape {
-        margin-top: 8px;
-        padding: 6px 8px;
-        font-size: 0.8rem;
-        width: 100%;
-      }
-
-      /* 中央: コンテンツラッパー */
-      .center-content {
-        grid-column: 2;
-        grid-row: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: flex-start;
-        height: 100%;
-        overflow-y: auto;  /* スクロールで全て見える */
-        min-width: 0;      /* flex子要素の縮小許可 */
-        padding: 8px 0;
-      }
-
-      .capture-section {
-        padding: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .capture-section .current-number {
-        font-size: 4.5rem;
-        margin-bottom: 4px;
-      }
-
-      .capture-section .current-path {
-        display: block;
-        font-size: 0.8rem;
-        margin-bottom: 4px;
-      }
-
-      .capture-section .current-count {
-        display: block;
-        font-size: 1.1rem;
-        margin-bottom: 4px;
-      }
-
-      .capture-section .capture-buttons {
-        display: none;
-      }
-
-      /* recent-section復活（中央カラム内） */
-      .recent-section {
-        display: block;
-        margin-top: 8px;
-        width: 100%;
-        max-width: 100%;
-        overflow: visible;
-      }
-
-      .recent-section h3 {
-        font-size: 0.8rem;
-        margin-bottom: 6px;
-        text-align: center;
-      }
-
-      .recent-list {
-        display: flex;     /* 明示的に追加 */
-        flex-wrap: nowrap; /* 折り返さない */
-        justify-content: flex-start;
-        overflow-x: auto;
-        gap: 8px;
-      }
-
-      .recent-item {
-        width: 50px;
-        height: 50px;
-      }
-
-      .recent-item-name {
-        font-size: 0.55rem;
-      }
-
-      .recent-item .judgment-badge {
-        width: 14px;
-        height: 14px;
-        font-size: 0.5rem;
-      }
-
-      /* 右: メタデータ+カメラサイドバー */
-      .sidebar-right {
-        grid-column: 3;
-        grid-row: 1;
-        display: flex;
-        flex-direction: column;
-        height: calc(100dvh - 44px);
-        overflow-y: auto;
-        padding: 4px;
-        gap: 4px;
-      }
-
-      #metadataSidebarSlot {
-        flex: 1;
-        min-height: 0;
-        overflow-y: auto;
-      }
-
-      #metadataSidebarSlot .metadata-section {
-        padding: 0;
-      }
-
-      .sidebar-right .camera-area {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 0;
-        flex-shrink: 0;
-      }
-
-      .sidebar-right .camera-area .btn-capture {
-        width: 70px;
-        height: 70px;
-        font-size: 1.8rem;
-        border-radius: 50%;
-        background: var(--accent);
-        color: white;
-        border: none;
-        cursor: pointer;
-      }
-
-      .sidebar-right .camera-area .btn-undo {
-        font-size: 0.75rem;
-        padding: 4px 8px;
-      }
-
-      /* 横持ち時は中央のメタデータを非表示（右サイドバーに移動） */
-      .center-content .metadata-section {
-        display: none;
-      }
-
-      /* 横持ち時のモーダル対応 */
-      .modal {
-        max-height: 90vh;
-        overflow-y: auto;
-      }
-
-      .modal-body {
-        padding: 12px;
-      }
-
-      .form-group {
-        margin-bottom: 8px;
-      }
-
-      .form-group input,
-      .form-group select {
-        padding: 8px;
-      }
+    .current-count {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
     }
 
     /* 最近の撮影 */
     .recent-section {
-      margin-top: 32px;
+      display: block;
+      margin-top: 8px;
+      width: 100%;
     }
 
     .recent-section h3 {
-      font-size: 0.9rem;
+      font-size: 0.8rem;
+      margin-bottom: 6px;
+      text-align: center;
       color: var(--text-secondary);
-      margin-bottom: 12px;
     }
 
     .recent-list {
       display: flex;
-      gap: 8px;
+      flex-wrap: nowrap;
+      justify-content: flex-start;
       overflow-x: auto;
-      padding-bottom: 8px;
+      gap: 8px;
     }
 
     .recent-item {
       flex-shrink: 0;
-      width: 80px;
-      height: 80px;
+      width: 50px;
+      height: 50px;
       border-radius: 8px;
       overflow: hidden;
       position: relative;
+      cursor: pointer;
     }
 
     .recent-item img {
@@ -600,7 +331,7 @@
       right: 0;
       background: rgba(0, 0, 0, 0.7);
       color: white;
-      font-size: 0.65rem;
+      font-size: 0.55rem;
       padding: 2px 4px;
       text-align: center;
       overflow: hidden;
@@ -608,8 +339,57 @@
       white-space: nowrap;
     }
 
-    .recent-item {
+    .recent-item .judgment-badge {
+      width: 14px;
+      height: 14px;
+      font-size: 0.5rem;
+    }
+
+    /* 右: メタデータ + カメラサイドバー */
+    .sidebar-right {
+      grid-column: 3;
+      grid-row: 1;
+      display: flex;
+      flex-direction: column;
+      height: calc(100dvh - 44px);
+      overflow-y: auto;
+      padding: 4px;
+      gap: 4px;
+    }
+
+    #metadataSidebarSlot {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    #metadataSidebarSlot .metadata-section {
+      padding: 0;
+    }
+
+    .sidebar-right .camera-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 0;
+      flex-shrink: 0;
+    }
+
+    .sidebar-right .camera-area .btn-capture {
+      width: 70px;
+      height: 70px;
+      font-size: 1.8rem;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      border: none;
       cursor: pointer;
+    }
+
+    .sidebar-right .camera-area .btn-undo {
+      font-size: 0.75rem;
+      padding: 4px 8px;
     }
 
     .judgment-badge {
@@ -1025,26 +805,24 @@
       gap: 6px;
     }
 
-    @media (orientation: landscape) and (max-height: 500px) {
-      .metadata-section {
-        padding: 0 4px 4px;
-      }
-      .metadata-row {
-        margin-bottom: 3px;
-      }
-      .metadata-row select {
-        padding: 4px 6px;
-        font-size: 0.75rem;
-      }
-      .meta-tabs button {
-        padding: 3px 2px;
-        font-size: 0.7rem;
-        min-width: auto;
-      }
-      .judgment-btn {
-        padding: 4px 2px;
-        font-size: 0.8rem;
-      }
+    .metadata-section {
+      padding: 0 4px 4px;
+    }
+    .metadata-row {
+      margin-bottom: 3px;
+    }
+    .metadata-row select {
+      padding: 4px 6px;
+      font-size: 0.75rem;
+    }
+    .meta-tabs button {
+      padding: 3px 2px;
+      font-size: 0.7rem;
+      min-width: auto;
+    }
+    .judgment-btn {
+      padding: 4px 2px;
+      font-size: 0.8rem;
     }
   </style>
 </head>
@@ -1082,10 +860,9 @@
 
     <!-- 撮影画面 -->
     <section id="captureScreen" class="hidden">
-      <!-- パンくず -->
-      <div class="breadcrumbs" id="breadcrumbs"></div>
+      <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none;">
 
-      <!-- 横持ち専用ツリーサイドバー -->
+      <!-- 左: ツリーサイドバー -->
       <div class="landscape-sidebar" id="landscapeSidebar">
         <div class="landscape-tree" id="landscapeTree"></div>
         <button class="btn btn-secondary btn-add-node-landscape" id="btnAddNodeLandscape">
@@ -1093,21 +870,22 @@
         </button>
       </div>
 
-      <!-- 階層一覧（縦向き用） -->
-      <div class="hierarchy-section">
-        <div class="node-list" id="nodeList"></div>
-        <button class="btn btn-secondary mt-16" id="btnAddNode" style="width: 100%;">
-          + 階層を追加
-        </button>
-      </div>
-
-      <!-- 中央コンテンツ（撮影セクション + 最近の撮影） -->
+      <!-- 中央: 撮影セクション + 最近の撮影 -->
       <div class="center-content">
-        <!-- 撮影セクション -->
         <div class="capture-section">
           <div class="current-number" id="currentNumber">001</div>
           <div class="current-path" id="currentPath">撮影場所を選択してください</div>
           <div class="current-count" id="currentCount">0枚撮影済み</div>
+        </div>
+        <div class="recent-section">
+          <h3>最近の撮影</h3>
+          <div class="recent-list" id="recentList"></div>
+        </div>
+      </div>
+
+      <!-- 右: メタデータ + カメラ -->
+      <div class="sidebar-right" id="sidebarRight">
+        <div id="metadataSidebarSlot">
           <div id="metadataSection" class="metadata-section hidden">
             <div class="metadata-row">
               <div class="meta-tabs" id="categoryTabs"></div>
@@ -1128,28 +906,7 @@
               <button type="button" class="judgment-btn" data-val="D">D</button>
             </div>
           </div>
-          <div class="capture-buttons">
-            <input type="file" id="fileInput" accept="image/*" capture="environment">
-            <button class="btn btn-primary btn-capture" id="btnCapture">
-              <span>📷</span>
-            </button>
-            <button class="btn btn-secondary btn-undo hidden" id="btnUndo">
-              ↩️ 取り消し
-            </button>
-          </div>
         </div>
-
-        <!-- 最近の撮影 -->
-        <div class="recent-section">
-          <h3>最近の撮影</h3>
-          <div class="recent-list" id="recentList"></div>
-        </div>
-
-      </div>
-
-      <!-- 右サイドバー（横持ち時：メタデータ+カメラ） -->
-      <div class="sidebar-right" id="sidebarRight">
-        <div id="metadataSidebarSlot"></div>
         <div class="camera-area">
           <button class="btn btn-primary btn-capture" id="btnCaptureSidebar">
             <span>📷</span>
@@ -2002,95 +1759,7 @@
       });
     }
 
-    function renderBreadcrumbs() {
-      const container = $('breadcrumbs');
-      const nodesMap = getNodesMap();
-
-      // 調査に戻るリンク
-      const survey = state.surveys.find(s => s.id === state.currentSurveyId);
-      let html = `<span class="breadcrumb-item" data-id="survey">${escapeHtml(survey?.name || '調査')}</span>`;
-
-      if (state.currentNodeId) {
-        const crumbs = buildBreadcrumbs(state.currentNodeId, nodesMap);
-        crumbs.forEach((node, i) => {
-          html += `<span class="breadcrumb-separator">›</span>`;
-          html += `<span class="breadcrumb-item" data-id="${node.id}">${escapeHtml(node.name)}</span>`;
-        });
-      }
-
-      container.innerHTML = html;
-
-      // イベント設定
-      container.querySelectorAll('.breadcrumb-item').forEach(item => {
-        item.addEventListener('click', () => {
-          if (item.dataset.id === 'survey') {
-            // 撮影画面を維持し、ルート階層で撮影可能に
-            state.currentNodeId = null;
-            state.lastRecordId = null;
-            renderBreadcrumbs();
-            renderNodeList();
-            renderLandscapeTree();
-            renderCaptureSection();
-          } else {
-            navigateToNode(item.dataset.id);
-          }
-        });
-      });
-    }
-
-    function renderNodeList() {
-      const container = $('nodeList');
-      const surveyNodes = state.nodes.filter(n => n.surveyId === state.currentSurveyId);
-      const children = surveyNodes.filter(n => n.parentId === state.currentNodeId);
-
-      if (children.length === 0) {
-        container.innerHTML = '';
-        return;
-      }
-
-      container.innerHTML = children
-        .sort((a, b) => a.order - b.order)
-        .map(node => {
-          const photoCount = state.records.filter(r => r.nodeId === node.id).length;
-          const hasChildren = surveyNodes.some(n => n.parentId === node.id);
-          return `
-            <div class="node-item" data-id="${node.id}">
-              <div>
-                <span class="node-name">${escapeHtml(node.name)}</span>
-                <span class="node-count">${photoCount}枚 ${hasChildren ? '▶' : ''}</span>
-              </div>
-              <div class="node-actions">
-                <button class="btn btn-icon btn-edit-node" data-id="${node.id}">✏️</button>
-                <button class="btn btn-icon btn-delete-node" data-id="${node.id}">🗑️</button>
-              </div>
-            </div>
-          `;
-        }).join('');
-
-      // イベント設定
-      container.querySelectorAll('.node-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-          if (e.target.closest('.btn')) return;
-          navigateToNode(item.dataset.id);
-        });
-      });
-
-      container.querySelectorAll('.btn-edit-node').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          openNodeModal(btn.dataset.id);
-        });
-      });
-
-      container.querySelectorAll('.btn-delete-node').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          deleteNode(btn.dataset.id);
-        });
-      });
-    }
-
-    // 横持ち専用ツリー表示（調査一覧 + 階層）
+    // ツリー表示（調査一覧 + 階層）
     function renderLandscapeTree() {
       const container = $('landscapeTree');
       let html = '';
@@ -2152,8 +1821,6 @@
             // 現在の調査をタップ → ルート階層を選択
             state.currentNodeId = null;
             state.lastRecordId = null;
-            renderBreadcrumbs();
-            renderNodeList();
             renderLandscapeTree();
             renderCaptureSection();
           }
@@ -2172,8 +1839,6 @@
     function selectNodeForCapture(nodeId) {
       state.currentNodeId = nodeId;
       state.lastRecordId = null;
-      renderBreadcrumbs();
-      renderNodeList();
       renderLandscapeTree();
       renderCaptureSection();
     }
@@ -2201,8 +1866,7 @@
       ).length;
       $('currentCount').textContent = `${count}枚撮影済み`;
 
-      // 取り消しボタン（縦向き・横向き両方を同期）
-      $('btnUndo').classList.toggle('hidden', !state.lastRecordId);
+      // 取り消しボタン
       $('btnUndoSidebar').classList.toggle('hidden', !state.lastRecordId);
 
       // メタデータセクション表示制御
@@ -2212,9 +1876,6 @@
       } else {
         $('metadataSection').classList.add('hidden');
       }
-
-      // 横持ち/縦持ちでメタデータの配置を切り替え
-      handleOrientationLayout();
     }
 
     async function renderRecentList() {
@@ -2272,8 +1933,6 @@
       // ヘッダーはFlashnapのまま、戻るボタンも非表示（パンくずで戻れる）
 
       showScreen('capture');
-      renderBreadcrumbs();
-      renderNodeList();
       renderLandscapeTree();
       renderCaptureSection();
       renderRecentList();
@@ -2378,8 +2037,6 @@
     function navigateToNode(nodeId) {
       state.currentNodeId = nodeId;
       state.lastRecordId = null;
-      renderBreadcrumbs();
-      renderNodeList();
       renderLandscapeTree();
       renderCaptureSection();
     }
@@ -2434,7 +2091,6 @@
       }
 
       modal.classList.remove('active');
-      renderNodeList();
       renderLandscapeTree();
     }
 
@@ -2470,7 +2126,6 @@
         state.currentNodeId = node?.parentId || null;
       }
 
-      renderNodeList();
       renderLandscapeTree();
       renderCaptureSection();
     }
@@ -3159,33 +2814,6 @@
       renderSurveyList();
     }
 
-    // ============================================
-    // 横持ち/縦持ち レイアウト切り替え
-    // ============================================
-    const landscapeQuery = window.matchMedia('(orientation: landscape) and (max-height: 500px)');
-
-    function handleOrientationLayout() {
-      const metadataSection = $('metadataSection');
-      const sidebarSlot = $('metadataSidebarSlot');
-      if (!metadataSection || !sidebarSlot) return;
-
-      if (landscapeQuery.matches) {
-        // 横持ち: メタデータを右サイドバーに移動
-        if (metadataSection.parentElement !== sidebarSlot) {
-          sidebarSlot.appendChild(metadataSection);
-        }
-      } else {
-        // 縦持ち: メタデータを撮影セクション内に戻す
-        const captureSection = document.querySelector('.capture-section');
-        const captureButtons = captureSection?.querySelector('.capture-buttons');
-        if (captureSection && metadataSection.parentElement !== captureSection) {
-          captureSection.insertBefore(metadataSection, captureButtons);
-        }
-      }
-    }
-
-    landscapeQuery.addEventListener('change', handleOrientationLayout);
-
     async function init() {
       await initDB();
 
@@ -3266,7 +2894,6 @@
       $('btnSaveSurvey').addEventListener('click', saveSurvey);
 
       // 階層モーダル
-      $('btnAddNode').addEventListener('click', () => openNodeModal());
       $('btnAddNodeLandscape').addEventListener('click', () => openNodeModal());
       $('btnCloseNodeModal').addEventListener('click', () => $('nodeModal').classList.remove('active'));
       $('btnCancelNode').addEventListener('click', () => $('nodeModal').classList.remove('active'));
@@ -3307,7 +2934,6 @@
       });
 
       // 撮影
-      $('btnCapture').addEventListener('click', () => $('fileInput').click());
       $('btnCaptureSidebar').addEventListener('click', () => $('fileInput').click());
       $('fileInput').addEventListener('change', (e) => {
         if (e.target.files[0]) {
@@ -3315,7 +2941,6 @@
           e.target.value = '';
         }
       });
-      $('btnUndo').addEventListener('click', undoCapture);
       $('btnUndoSidebar').addEventListener('click', undoCapture);
 
       // モーダル外クリックで閉じる
