@@ -85,6 +85,10 @@ npx wrangler pages deploy . --project-name=flashnap
 - 写真一覧表示（判定バッジ付き、タップで編集）
 - 個別削除可能
 
+### 横向き強制
+- manifest.json: `orientation: "landscape"`（PWAインストール時）
+- 縦持ち時は「横向きにしてください」オーバーレイ表示（CSS media query）
+
 ### 設定
 - Google Drive接続/解除
 - 今すぐ同期（同期キュー手動処理）
