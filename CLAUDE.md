@@ -19,7 +19,8 @@ flashnap/
 ├── lib/
 │   └── jszip.min.js
 ├── tests/
-│   └── app.spec.js      # E2Eテスト（Playwright）
+│   ├── app.spec.js      # E2Eテスト（Playwright）
+│   └── metadata.spec.js # メタデータE2Eテスト
 ├── index.html           # メインアプリ（HTML/CSS/JS全部入り）
 ├── manifest.json        # PWAマニフェスト
 ├── sw.js                # Service Worker
