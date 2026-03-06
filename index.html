@@ -47,6 +47,30 @@
       overflow-x: hidden;
     }
 
+    /* 縦持ちオーバーレイ */
+    .portrait-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      font-size: 1.2rem;
+      text-align: center;
+      padding: 24px;
+    }
+    .portrait-overlay .rotate-icon {
+      font-size: 3rem;
+    }
+    @media (orientation: portrait) {
+      .portrait-overlay { display: flex; }
+      .header, .main, .modal-overlay { display: none !important; }
+    }
+
     /* ヘッダー */
     .header {
       display: flex;
@@ -849,6 +873,11 @@
   </style>
 </head>
 <body>
+  <!-- 縦持ちオーバーレイ -->
+  <div class="portrait-overlay">
+    <span class="rotate-icon">📱↻</span>
+    <p>横向きにしてください</p>
+  </div>
   <!-- Google APIs for Drive integration -->
   <script src="https://apis.google.com/js/api.js" async defer></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
