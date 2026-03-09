@@ -533,6 +533,7 @@
     .form-group select:focus {
       outline: none;
       border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25);
     }
 
     .form-group input[type="checkbox"] {
@@ -788,10 +789,10 @@
     .judgment-btn.active[data-val="C"] { background: #DDDD66; border-color: #AAAA33; }
     .judgment-btn.active[data-val="D"] { background: #DD66DD; border-color: #AA33AA; }
 
-    [data-theme="dark"] .judgment-btn[data-val="A"] { background: #2a5a2a; color: #eaeaea; }
-    [data-theme="dark"] .judgment-btn[data-val="B"] { background: #2a5a5a; color: #eaeaea; }
-    [data-theme="dark"] .judgment-btn[data-val="C"] { background: #5a5a2a; color: #eaeaea; }
-    [data-theme="dark"] .judgment-btn[data-val="D"] { background: #5a2a5a; color: #eaeaea; }
+    [data-theme="dark"] .judgment-btn[data-val="A"] { background: #336633; color: #eaeaea; }
+    [data-theme="dark"] .judgment-btn[data-val="B"] { background: #336666; color: #eaeaea; }
+    [data-theme="dark"] .judgment-btn[data-val="C"] { background: #666633; color: #eaeaea; }
+    [data-theme="dark"] .judgment-btn[data-val="D"] { background: #663366; color: #eaeaea; }
 
     [data-theme="dark"] .judgment-btn.active[data-val="A"] { background: #44AA44; border-color: #66DD66; }
     [data-theme="dark"] .judgment-btn.active[data-val="B"] { background: #44AAAA; border-color: #66DDDD; }
@@ -851,22 +852,22 @@
       gap: 6px;
     }
 
-    .metadata-section {
+    #metadataSidebarSlot .metadata-section {
       padding: 0 4px 4px;
     }
-    .metadata-row {
+    #metadataSidebarSlot .metadata-row {
       margin-bottom: 3px;
     }
-    .metadata-row select {
+    #metadataSidebarSlot .metadata-row select {
       padding: 4px 6px;
       font-size: 0.75rem;
     }
-    .meta-tabs button {
+    #metadataSidebarSlot .meta-tabs button {
       padding: 3px 2px;
       font-size: 0.7rem;
       min-width: auto;
     }
-    .judgment-btn {
+    #metadataSidebarSlot .judgment-btn {
       padding: 4px 2px;
       font-size: 0.8rem;
     }
@@ -884,16 +885,16 @@
   <!-- ヘッダー -->
   <header class="header">
     <div style="display: flex; align-items: center; gap: 8px;">
-      <button class="btn btn-icon hidden" id="btnBack" title="戻る">
+      <button class="btn btn-icon hidden" id="btnBack" title="戻る" aria-label="戻る">
         <span>←</span>
       </button>
       <h1 id="headerTitle" style="cursor: pointer;">Flashnap</h1>
     </div>
     <div class="header-buttons">
-      <button class="btn btn-icon" id="btnExport" title="エクスポート">
+      <button class="btn btn-icon" id="btnExport" title="エクスポート" aria-label="エクスポート">
         <span>📤</span>
       </button>
-      <button class="btn btn-icon" id="btnSettings" title="設定">
+      <button class="btn btn-icon" id="btnSettings" title="設定" aria-label="設定">
         <span>⚙️</span>
       </button>
     </div>
@@ -959,7 +960,7 @@
           </div>
         </div>
         <div class="camera-area">
-          <button class="btn btn-primary btn-capture" id="btnCaptureSidebar">
+          <button class="btn btn-primary btn-capture" id="btnCaptureSidebar" aria-label="撮影">
             <span>📷</span>
           </button>
           <button class="btn btn-secondary btn-undo hidden" id="btnUndoSidebar">
@@ -1182,6 +1183,9 @@
         const request = indexedDB.open(DB_NAME, DB_VERSION);
 
         request.onerror = () => reject(request.error);
+        request.onblocked = () => {
+          alert('他のタブでFlashnapが開いています。閉じてからリロードしてください。');
+        };
         request.onsuccess = () => {
           db = request.result;
           resolve(db);
@@ -1336,6 +1340,10 @@
           callback: (response) => {
             if (response.error) {
               console.error('Token error:', response);
+              if (_tokenRefreshResolve) {
+                _tokenRefreshResolve(false);
+                _tokenRefreshResolve = null;
+              }
               return;
             }
             // トークン取得成功
@@ -1346,6 +1354,11 @@
             updateGoogleDriveUI();
             // 同期キュー処理開始
             processSyncQueue();
+            // リフレッシュ待ちがあれば解決
+            if (_tokenRefreshResolve) {
+              _tokenRefreshResolve(true);
+              _tokenRefreshResolve = null;
+            }
           }
         });
         gisInited = true;
@@ -1386,15 +1399,23 @@
       updateGoogleDriveUI();
     }
 
+    let _tokenRefreshResolve = null;
+
     async function refreshTokenIfNeeded() {
       if (!state.settings.googleDrive.enabled) return false;
       // トークン有効期限の5分前にリフレッシュ
       if (state.settings.googleDrive.tokenExpiry &&
           Date.now() > state.settings.googleDrive.tokenExpiry - 300000) {
         return new Promise((resolve) => {
+          _tokenRefreshResolve = resolve;
           tokenClient.requestAccessToken({ prompt: '' });
-          // callbackで処理されるので、少し待つ
-          setTimeout(() => resolve(true), 1000);
+          // タイムアウト: 30秒でコールバック未着なら失敗とみなす
+          setTimeout(() => {
+            if (_tokenRefreshResolve === resolve) {
+              _tokenRefreshResolve = null;
+              resolve(false);
+            }
+          }, 30000);
         });
       }
       return true;
@@ -1531,7 +1552,7 @@
 
       // 調査フォルダを検索
       const searchRes = await fetch(
-        `https://www.googleapis.com/drive/v3/files?q=name='${surveyName.replace(/'/g, "\\'")}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+        `https://www.googleapis.com/drive/v3/files?q=name='${surveyName.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       const searchData = await searchRes.json();
@@ -2175,11 +2196,14 @@
       for (const nid of nodeIds) {
         await dbDelete('nodes', nid);
       }
+      // 削除前に parentId を取得
+      const deletedNode = state.nodes.find(n => n.id === nodeId);
+      const parentId = deletedNode?.parentId || null;
+
       state.nodes = state.nodes.filter(n => !nodeIds.includes(n.id));
 
       if (state.currentNodeId === nodeId) {
-        const node = state.nodes.find(n => n.id === nodeId);
-        state.currentNodeId = node?.parentId || null;
+        state.currentNodeId = parentId;
       }
 
       renderTree();
@@ -2372,22 +2396,21 @@
         </div>
       `;
 
-      // 写真一覧
+      // 写真一覧（遅延読み込み）
       const grid = $('photoGrid');
       grid.innerHTML = '';
 
+      // プレースホルダーを先に全部作成（UIブロックなし）
       for (const record of records) {
-        const photo = await dbGet('photos', record.id);
-        if (!photo) continue;
-
         const div = document.createElement('div');
         div.className = 'photo-item';
+        div.dataset.recordId = record.id;
         const judgment = record.metadata?.judgment;
         const badgeHtml = judgment
           ? `<div class="judgment-badge" data-val="${escapeHtml(judgment)}">${escapeHtml(judgment)}</div>`
           : '';
         div.innerHTML = `
-          <img src="${photo.dataUrl}" alt="${record.filename}"${hasMetadata ? ' style="cursor:pointer;"' : ''}>
+          <img data-record-id="${record.id}" alt="${record.filename}" style="min-height:80px;background:var(--bg-secondary);${hasMetadata ? 'cursor:pointer;' : ''}">
           <button class="photo-item-delete" data-id="${record.id}">✕</button>
           ${badgeHtml}
           <div class="photo-item-name">${escapeHtml(record.filename)}</div>
@@ -2397,6 +2420,19 @@
         }
         grid.appendChild(div);
       }
+
+      // IntersectionObserverで画像を遅延読み込み
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(async (entry) => {
+          if (!entry.isIntersecting) return;
+          const img = entry.target;
+          observer.unobserve(img);
+          const photo = await dbGet('photos', img.dataset.recordId);
+          if (photo) img.src = photo.dataUrl;
+        });
+      }, { root: grid.closest('.modal-content'), rootMargin: '200px' });
+
+      grid.querySelectorAll('img[data-record-id]').forEach(img => observer.observe(img));
 
       grid.querySelectorAll('.photo-item-delete').forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -2562,53 +2598,32 @@
       return active?.dataset.cat || '';
     }
 
-    function updateMaterialOptions(type, cat, part) {
-      const master = SURVEY_TYPES[type].master;
-      const el = $('metaMaterial');
+    function _populateSelectOptions(el, items, label) {
       const prev = el.value;
-
-      const filtered = master.materials.filter(m =>
-        m.cat === cat && (!part || m.parts.includes(part))
-      );
-
-      el.innerHTML = '<option value="">材質</option>';
+      el.innerHTML = `<option value="">${label}</option>`;
       const seen = new Set();
-      filtered.forEach(m => {
-        if (!seen.has(m.val)) {
-          seen.add(m.val);
+      items.forEach(item => {
+        if (!seen.has(item.val)) {
+          seen.add(item.val);
           const opt = document.createElement('option');
-          opt.value = m.val;
-          opt.textContent = m.val;
+          opt.value = item.val;
+          opt.textContent = item.val;
           el.appendChild(opt);
         }
       });
-
-      // 前の値が残っていれば復元
       if (prev && seen.has(prev)) el.value = prev;
+    }
+
+    function updateMaterialOptions(type, cat, part) {
+      const master = SURVEY_TYPES[type].master;
+      const filtered = master.materials.filter(m => m.cat === cat && (!part || m.parts.includes(part)));
+      _populateSelectOptions($('metaMaterial'), filtered, '材質');
     }
 
     function updateNoteOptions(type, cat, part) {
       const master = SURVEY_TYPES[type].master;
-      const el = $('metaNote');
-      const prev = el.value;
-
-      const filtered = master.notes.filter(n =>
-        n.cat === cat && (!part || n.parts.includes(part))
-      );
-
-      el.innerHTML = '<option value="">特記</option>';
-      const seen = new Set();
-      filtered.forEach(n => {
-        if (!seen.has(n.val)) {
-          seen.add(n.val);
-          const opt = document.createElement('option');
-          opt.value = n.val;
-          opt.textContent = n.val;
-          el.appendChild(opt);
-        }
-      });
-
-      if (prev && seen.has(prev)) el.value = prev;
+      const filtered = master.notes.filter(n => n.cat === cat && (!part || n.parts.includes(part)));
+      _populateSelectOptions($('metaNote'), filtered, '特記');
     }
 
     function getMetadataFromForm() {
@@ -2729,40 +2744,14 @@
 
     function metaEditUpdateMaterials(type, cat, part) {
       const master = SURVEY_TYPES[type].master;
-      const el = $('metaEditMaterial');
-      const prev = el.value;
       const filtered = master.materials.filter(m => m.cat === cat && (!part || m.parts.includes(part)));
-      el.innerHTML = '<option value="">材質</option>';
-      const seen = new Set();
-      filtered.forEach(m => {
-        if (!seen.has(m.val)) {
-          seen.add(m.val);
-          const opt = document.createElement('option');
-          opt.value = m.val;
-          opt.textContent = m.val;
-          el.appendChild(opt);
-        }
-      });
-      if (prev && seen.has(prev)) el.value = prev;
+      _populateSelectOptions($('metaEditMaterial'), filtered, '材質');
     }
 
     function metaEditUpdateNotes(type, cat, part) {
       const master = SURVEY_TYPES[type].master;
-      const el = $('metaEditNote');
-      const prev = el.value;
       const filtered = master.notes.filter(n => n.cat === cat && (!part || n.parts.includes(part)));
-      el.innerHTML = '<option value="">特記</option>';
-      const seen = new Set();
-      filtered.forEach(n => {
-        if (!seen.has(n.val)) {
-          seen.add(n.val);
-          const opt = document.createElement('option');
-          opt.value = n.val;
-          opt.textContent = n.val;
-          el.appendChild(opt);
-        }
-      });
-      if (prev && seen.has(prev)) el.value = prev;
+      _populateSelectOptions($('metaEditNote'), filtered, '特記');
     }
 
     async function saveMetaEdit() {
@@ -3007,6 +2996,14 @@
             overlay.classList.remove('active');
           }
         });
+      });
+
+      // ESCキーでモーダルを閉じる
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          const active = document.querySelector('.modal-overlay.active');
+          if (active) active.classList.remove('active');
+        }
       });
     }
 
